@@ -1,9 +1,39 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Shirt, Sparkles, Wand2 } from "lucide-react";
+import { Camera, MessageCircle, Search, Shirt, Sparkles, Wand2 } from "lucide-react";
+import { OutfitFeed } from "@/components/social/outfit-feed";
+import { ProfileGrid } from "@/components/social/profile-grid";
+import {
+  loadPublicOutfits,
+  loadPublicProfiles
+} from "@/lib/outfits/loaders";
+import {
+  moodLabels,
+  occasionLabels,
+  outfitMoods,
+  outfitOccasions
+} from "@/lib/outfits/schema";
+import type { ExploreFilter } from "@/lib/social/schema";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function ExplorePage() {
+type ExplorePageProps = {
+  searchParams: Promise<{
+    feed?: string;
+    occasion?: string;
+    mood?: string;
+  }>;
+};
+
+function filterHref(filter: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(filter).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  const query = params.toString();
+  return query ? `/explore?${query}` : "/explore";
+}
+
+export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const supabase = await createClient();
 
   if (!supabase) {
@@ -30,21 +60,45 @@ export default async function ExplorePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, username, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
+  const [{ data: wardrobeRows }, { data: outfitRows }] = await Promise.all([
+    supabase.from("wardrobe_items").select("id").eq("user_id", user.id),
+    supabase.from("outfits").select("id").eq("user_id", user.id)
+  ]);
+
+  const params = await searchParams;
+  const filter: ExploreFilter = {
+    feed: params.feed === "following" ? "following" : "all",
+    occasion: outfitOccasions.includes(params.occasion as never)
+      ? params.occasion
+      : undefined,
+    mood: outfitMoods.includes(params.mood as never) ? params.mood : undefined
+  };
+
+  const [outfits, profiles] = await Promise.all([
+    loadPublicOutfits(supabase, user.id, filter, 18),
+    loadPublicProfiles(supabase, user.id, "", 6)
+  ]);
+
   const firstName =
     profile?.full_name?.split(" ").filter(Boolean)[0] ??
+    profile?.username ??
     user.email?.split("@")[0] ??
-    "Styla";
+    "there";
 
   return (
-    <section className="page-shell">
-      <div className="section-kicker">Your Style</div>
-      <div className="hero-row">
-        <div>
-          <h1>{firstName}.</h1>
+    <section className="page-shell explore-page">
+      <div className="section-kicker">Styla Social</div>
+      <div className="explore-hero">
+        <div className="explore-copy">
+          <h1>Welcome back, {firstName}.</h1>
+          <p>
+            Discover public looks, follow people with a similar eye, and save
+            outfit ideas back to your own styling library.
+          </p>
           <div className="quick-actions">
             <Link href="/wardrobe">
               <Shirt size={14} aria-hidden="true" />
@@ -55,45 +109,120 @@ export default async function ExplorePage() {
               Generate
             </Link>
             <Link href="/outfit-check">
-              <Sparkles size={14} aria-hidden="true" />
+              <Camera size={14} aria-hidden="true" />
               Check
+            </Link>
+            <Link href="/chat">
+              <MessageCircle size={14} aria-hidden="true" />
+              Chat
             </Link>
           </div>
         </div>
-        <div className="mini-stats" aria-label="Wardrobe summary">
+
+        <div className="style-orbit" aria-hidden="true">
+          <div>
+            <span>{profile?.username?.slice(0, 1).toUpperCase() ?? "S"}</span>
+          </div>
+          <small>{styleDna.style_aesthetic}</small>
+        </div>
+
+        <div className="mini-stats" aria-label="Your Styla summary">
           <span>
-            <strong>0</strong>
+            <strong>{wardrobeRows?.length ?? 0}</strong>
             Items
           </span>
           <span>
-            <strong>0</strong>
+            <strong>{outfitRows?.length ?? 0}</strong>
             Looks
+          </span>
+          <span>
+            <strong>{profiles.length}</strong>
+            People
           </span>
         </div>
       </div>
 
       <div className="rule" />
 
-      <section className="feed-preview" aria-labelledby="phase-title">
-        <div className="section-kicker">Phase 1</div>
-        <h2 id="phase-title">Foundation ready</h2>
-        <div className="foundation-grid">
-          <article>
-            <span>01</span>
-            <strong>Google sign-in</strong>
-            <p>Supabase auth is wired through the server callback.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <strong>Style DNA</strong>
-            <p>Your onboarding answers are saved for AI personalization.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <strong>App shell</strong>
-            <p>The protected layout is ready for the next approved feature.</p>
-          </article>
+      <section className="social-section">
+        <div className="social-section-heading">
+          <div>
+            <div className="section-kicker">Public Feed</div>
+            <h2>Explore Looks</h2>
+          </div>
+          <Link className="search-pill" href="/search">
+            <Search size={13} aria-hidden="true" />
+            Search
+          </Link>
         </div>
+
+        <div className="social-filter-bar">
+          <Link
+            className={filter.feed !== "following" ? "is-active" : undefined}
+            href={filterHref({ occasion: filter.occasion, mood: filter.mood })}
+          >
+            All
+          </Link>
+          <Link
+            className={filter.feed === "following" ? "is-active" : undefined}
+            href={filterHref({
+              feed: "following",
+              occasion: filter.occasion,
+              mood: filter.mood
+            })}
+          >
+            Following
+          </Link>
+          {outfitOccasions.slice(0, 4).map((occasion) => (
+            <Link
+              key={occasion}
+              className={filter.occasion === occasion ? "is-active" : undefined}
+              href={filterHref({
+                feed: filter.feed === "following" ? "following" : undefined,
+                occasion,
+                mood: filter.mood
+              })}
+            >
+              {occasionLabels[occasion]}
+            </Link>
+          ))}
+          {outfitMoods.slice(0, 4).map((mood) => (
+            <Link
+              key={mood}
+              className={filter.mood === mood ? "is-active" : undefined}
+              href={filterHref({
+                feed: filter.feed === "following" ? "following" : undefined,
+                occasion: filter.occasion,
+                mood
+              })}
+            >
+              {moodLabels[mood]}
+            </Link>
+          ))}
+        </div>
+
+        <OutfitFeed
+          outfits={outfits}
+          emptyTitle={
+            filter.feed === "following" ? "Your following feed is quiet" : "No public looks yet"
+          }
+          emptyText={
+            filter.feed === "following"
+              ? "Follow people from Search to fill this feed."
+              : "Share one of your saved outfits to start the public feed."
+          }
+        />
+      </section>
+
+      <section className="social-section">
+        <div className="social-section-heading">
+          <div>
+            <div className="section-kicker">People</div>
+            <h2>Stylists to Follow</h2>
+          </div>
+          <Sparkles size={18} aria-hidden="true" />
+        </div>
+        <ProfileGrid profiles={profiles} currentUserId={user.id} />
       </section>
     </section>
   );

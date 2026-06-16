@@ -40,7 +40,8 @@ export default async function SharedOutfitPage({
     <main className="shared-outfit-page">
       <header className="shared-outfit-header">
         <Link className="brand-lockup" href="/login">
-          <span className="brand-icon">S</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand-logo-img" src="/styla-logo.png" alt="" />
           <span>Styla</span>
         </Link>
         <Link href="/explore">Back to Explore</Link>

@@ -3,6 +3,11 @@ import type {
   OutfitLibraryItem,
   SavedOutfit
 } from "@/lib/outfits/schema";
+import type {
+  ExploreFilter,
+  PublicOutfit,
+  PublicProfile
+} from "@/lib/social/schema";
 import type { WardrobeItem } from "@/lib/wardrobe/schema";
 
 type SupabaseLike = {
@@ -13,7 +18,9 @@ type SupabaseLike = {
 
 type QueryBuilder = {
   eq: (column: string, value: unknown) => QueryBuilder;
+  neq: (column: string, value: unknown) => QueryBuilder;
   in: (column: string, values: unknown[]) => QueryBuilder;
+  or: (filters: string) => QueryBuilder;
   order: (column: string, options?: { ascending?: boolean }) => QueryBuilder;
   limit: (count: number) => QueryBuilder;
   single: () => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -23,6 +30,17 @@ type QueryBuilder = {
 
 function asQuery(value: unknown) {
   return value as QueryBuilder;
+}
+
+function countBy<T extends string>(
+  rows: Record<T, string>[],
+  key: T
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  rows.forEach((row) => {
+    counts.set(row[key], (counts.get(row[key]) ?? 0) + 1);
+  });
+  return counts;
 }
 
 export async function attachItemsToOutfits(
@@ -101,4 +119,224 @@ export async function loadBookmarkedOutfits(
   return ((outfits ?? []) as SavedOutfit[]).sort(
     (a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)
   );
+}
+
+export async function loadPublicOutfits(
+  supabase: SupabaseLike,
+  userId: string,
+  filter: ExploreFilter = {},
+  limit = 24
+): Promise<PublicOutfit[]> {
+  const followingIds =
+    filter.feed === "following" ? await loadFollowingIds(supabase, userId) : [];
+
+  if (filter.feed === "following" && !followingIds.length) {
+    return [];
+  }
+
+  let outfitQuery = asQuery(
+    supabase.from("outfits").select("*")
+  )
+    .eq("is_public", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (filter.occasion) outfitQuery = outfitQuery.eq("occasion", filter.occasion);
+  if (filter.mood) outfitQuery = outfitQuery.eq("mood", filter.mood);
+  if (filter.weather) outfitQuery = outfitQuery.eq("weather", filter.weather);
+  if (followingIds.length) outfitQuery = outfitQuery.in("user_id", followingIds);
+
+  const { data: outfitRows } = await outfitQuery;
+  const outfits = await attachItemsToOutfits(
+    supabase,
+    (outfitRows ?? []) as SavedOutfit[]
+  );
+
+  return attachSocialData(supabase, userId, outfits);
+}
+
+export async function loadPublicProfileByUsername(
+  supabase: SupabaseLike,
+  currentUserId: string | null,
+  username: string
+): Promise<PublicProfile | null> {
+  const { data: profile } = await asQuery(
+    supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url, bio, membership_tier")
+  )
+    .eq("username", username)
+    .maybeSingle();
+
+  if (!profile) {
+    return null;
+  }
+
+  const [profileWithStats] = await attachProfileStats(
+    supabase,
+    currentUserId,
+    [profile as PublicProfile]
+  );
+  return profileWithStats ?? null;
+}
+
+export async function loadPublicProfiles(
+  supabase: SupabaseLike,
+  currentUserId: string,
+  query = "",
+  limit = 12
+): Promise<PublicProfile[]> {
+  let profileQuery = asQuery(
+    supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url, bio, membership_tier")
+  )
+    .eq("is_public", true)
+    .neq("id", currentUserId)
+    .limit(limit);
+
+  const trimmed = query.trim();
+  if (trimmed) {
+    const escaped = trimmed.replaceAll(",", " ").replaceAll("%", "");
+    profileQuery = profileQuery.or(
+      `username.ilike.%${escaped}%,full_name.ilike.%${escaped}%`
+    );
+  }
+
+  const { data: profiles } = await profileQuery;
+  return attachProfileStats(
+    supabase,
+    currentUserId,
+    ((profiles ?? []) as PublicProfile[]).filter((profile) => profile.username)
+  );
+}
+
+export async function loadPublicOutfitsForProfile(
+  supabase: SupabaseLike,
+  currentUserId: string | null,
+  profileId: string
+): Promise<PublicOutfit[]> {
+  const { data: outfitRows } = await asQuery(
+    supabase.from("outfits").select("*")
+  )
+    .eq("user_id", profileId)
+    .eq("is_public", true)
+    .order("created_at", { ascending: false })
+    .limit(24);
+
+  const outfits = await attachItemsToOutfits(
+    supabase,
+    (outfitRows ?? []) as SavedOutfit[]
+  );
+
+  return attachSocialData(supabase, currentUserId, outfits);
+}
+
+export async function loadFollowingIds(supabase: SupabaseLike, userId: string) {
+  const { data: followRows } = await asQuery(
+    supabase.from("follows").select("following_id")
+  ).eq("follower_id", userId);
+
+  return ((followRows ?? []) as { following_id: string }[]).map(
+    (row) => row.following_id
+  );
+}
+
+async function attachSocialData(
+  supabase: SupabaseLike,
+  userId: string | null,
+  outfits: OutfitLibraryItem[]
+): Promise<PublicOutfit[]> {
+  if (!outfits.length) return [];
+
+  const outfitIds = outfits.map((outfit) => outfit.id);
+  const creatorIds = Array.from(new Set(outfits.map((outfit) => outfit.user_id)));
+
+  const [{ data: profiles }, { data: likes }, { data: bookmarks }] = await Promise.all([
+    asQuery(
+      supabase
+        .from("profiles")
+        .select("id, username, full_name, avatar_url, bio, membership_tier")
+    ).in("id", creatorIds),
+    asQuery(supabase.from("likes").select("user_id, outfit_id")).in(
+      "outfit_id",
+      outfitIds
+    ),
+    userId
+      ? asQuery(supabase.from("bookmarks").select("outfit_id"))
+          .eq("user_id", userId)
+          .in("outfit_id", outfitIds)
+      : Promise.resolve({ data: [], error: null })
+  ]);
+
+  const profilesWithStats = await attachProfileStats(
+    supabase,
+    userId,
+    (profiles ?? []) as PublicProfile[]
+  );
+  const profileById = new Map(profilesWithStats.map((profile) => [profile.id, profile]));
+  const likeRows = (likes ?? []) as { user_id: string; outfit_id: string }[];
+  const likeCounts = countBy(likeRows, "outfit_id");
+  const likedIds = new Set(
+    likeRows.filter((like) => like.user_id === userId).map((like) => like.outfit_id)
+  );
+  const bookmarkedIds = new Set(
+    ((bookmarks ?? []) as { outfit_id: string }[]).map((bookmark) => bookmark.outfit_id)
+  );
+
+  return outfits.map((outfit) => ({
+    ...outfit,
+    creator: profileById.get(outfit.user_id) ?? null,
+    like_count: likeCounts.get(outfit.id) ?? 0,
+    is_liked: likedIds.has(outfit.id),
+    is_bookmarked: bookmarkedIds.has(outfit.id)
+  }));
+}
+
+async function attachProfileStats(
+  supabase: SupabaseLike,
+  currentUserId: string | null,
+  profiles: PublicProfile[]
+): Promise<PublicProfile[]> {
+  if (!profiles.length) return [];
+
+  const profileIds = profiles.map((profile) => profile.id);
+  const [{ data: outfits }, { data: followers }, { data: following }, { data: mine }] =
+    await Promise.all([
+      asQuery(supabase.from("outfits").select("user_id")).in("user_id", profileIds),
+      asQuery(supabase.from("follows").select("following_id")).in(
+        "following_id",
+        profileIds
+      ),
+      asQuery(supabase.from("follows").select("follower_id")).in(
+        "follower_id",
+        profileIds
+      ),
+      currentUserId
+        ? asQuery(supabase.from("follows").select("following_id"))
+            .eq("follower_id", currentUserId)
+            .in("following_id", profileIds)
+        : Promise.resolve({ data: [], error: null })
+    ]);
+
+  const outfitCounts = countBy((outfits ?? []) as { user_id: string }[], "user_id");
+  const followerCounts = countBy(
+    (followers ?? []) as { following_id: string }[],
+    "following_id"
+  );
+  const followingCounts = countBy(
+    (following ?? []) as { follower_id: string }[],
+    "follower_id"
+  );
+  const followingMine = new Set(
+    ((mine ?? []) as { following_id: string }[]).map((row) => row.following_id)
+  );
+
+  return profiles.map((profile) => ({
+    ...profile,
+    outfit_count: outfitCounts.get(profile.id) ?? 0,
+    follower_count: followerCounts.get(profile.id) ?? 0,
+    following_count: followingCounts.get(profile.id) ?? 0,
+    is_following: followingMine.has(profile.id)
+  }));
 }

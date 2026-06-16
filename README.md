@@ -56,6 +56,14 @@ Phase 7 adds:
 - Public profile and show-outfits toggles
 - Free/Pro/Elite membership UI state
 
+Phase 8 adds:
+
+- Explore public outfit feed
+- Search for public profiles and shared looks
+- Public `/u/[username]` profile pages
+- Follow/unfollow, likes, bookmarks, and share-copy actions
+- App-wide responsive UI polish and Styla logo asset
+
 ## Local Setup
 
 1. Install dependencies:
@@ -88,6 +96,7 @@ Or paste and run these files in the Supabase SQL editor:
 - `supabase/migrations/202606160005_fix_outfit_item_rls_recursion.sql`
 - `supabase/migrations/202606160006_phase6_chat_messages.sql`
 - `supabase/migrations/202606160007_phase7_profile_settings.sql`
+- `supabase/migrations/202606160008_phase8_social_discovery.sql`
 
 4. Run the app:
 
@@ -96,3 +105,20 @@ npm run dev
 ```
 
 The local app runs at `http://localhost:3000`.
+
+## Deploying
+
+Deploy with Vercel using the same environment variables from `.env.local`.
+
+In Supabase, add both local and production auth redirect URLs:
+
+- `http://localhost:3000/auth/callback`
+- `https://YOUR-VERCEL-DOMAIN.vercel.app/auth/callback`
+
+In Vercel, use:
+
+- Build command: `npm run build`
+- Install command: `npm install`
+- Output: Next.js default
+
+After deploy, update Google OAuth authorized redirect URIs and Supabase redirect URLs with the final production domain.
