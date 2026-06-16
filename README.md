@@ -64,6 +64,20 @@ Phase 8 adds:
 - Follow/unfollow, likes, bookmarks, and share-copy actions
 - App-wide responsive UI polish and Styla logo asset
 
+Messages adds:
+
+- Private direct-message conversations between users
+- Message entry point from public profile pages
+- Saved/public outfit attachments inside DMs
+- Protected conversation and message RLS
+- Professional responsive inbox UI
+
+Payments adds:
+
+- Optional Stripe Payment Link buttons for Pro and Elite
+- No feature gating between plans in v1
+- Payments remain Stripe-hosted for the simplest production setup
+
 ## Local Setup
 
 1. Install dependencies:
@@ -79,6 +93,8 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.5-flash
+NEXT_PUBLIC_STRIPE_PRO_PAYMENT_LINK=
+NEXT_PUBLIC_STRIPE_ELITE_PAYMENT_LINK=
 ```
 
 3. Apply the Supabase migrations:
@@ -97,6 +113,7 @@ Or paste and run these files in the Supabase SQL editor:
 - `supabase/migrations/202606160006_phase6_chat_messages.sql`
 - `supabase/migrations/202606160007_phase7_profile_settings.sql`
 - `supabase/migrations/202606160008_phase8_social_discovery.sql`
+- `supabase/migrations/202606160009_direct_messages.sql`
 
 4. Run the app:
 
@@ -122,3 +139,20 @@ In Vercel, use:
 - Output: Next.js default
 
 After deploy, update Google OAuth authorized redirect URIs and Supabase redirect URLs with the final production domain.
+
+## Stripe Payment Links
+
+The simplest real payment setup is Stripe Payment Links:
+
+1. Create Stripe products/prices for Pro and Elite.
+2. Create a Payment Link for each paid plan.
+3. Add the links to Vercel and `.env.local`:
+
+```bash
+NEXT_PUBLIC_STRIPE_PRO_PAYMENT_LINK=
+NEXT_PUBLIC_STRIPE_ELITE_PAYMENT_LINK=
+```
+
+4. Add your bank account in Stripe Dashboard payout settings.
+
+This v1 keeps all app features the same across Free, Pro, and Elite. If you later want automatic plan syncing after payment, add Stripe webhooks for `checkout.session.completed` and update `profiles.membership_tier`.

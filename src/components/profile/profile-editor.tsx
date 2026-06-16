@@ -38,6 +38,11 @@ const planCards = [
   }
 ] as const;
 
+const paymentLinks = {
+  pro: process.env.NEXT_PUBLIC_STRIPE_PRO_PAYMENT_LINK,
+  elite: process.env.NEXT_PUBLIC_STRIPE_ELITE_PAYMENT_LINK
+} as const;
+
 export function ProfileEditor({
   initialProfile,
   initialStyleDna
@@ -202,17 +207,10 @@ export function ProfileEditor({
 
         <div className="plan-grid">
           {planCards.map((plan) => (
-            <button
+            <article
               key={plan.tier}
-              type="button"
               className={
                 profile.membership_tier === plan.tier ? "plan-card is-active" : "plan-card"
-              }
-              onClick={() =>
-                setProfile((current) => ({
-                  ...current,
-                  membership_tier: plan.tier
-                }))
               }
             >
               {plan.tier === "elite" ? (
@@ -224,7 +222,25 @@ export function ProfileEditor({
               <span>{plan.price}</span>
               <p>{plan.detail}</p>
               {profile.membership_tier === plan.tier ? <Check size={15} /> : null}
-            </button>
+              <div className="plan-actions">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setProfile((current) => ({
+                      ...current,
+                      membership_tier: plan.tier
+                    }))
+                  }
+                >
+                  Select
+                </button>
+                {plan.tier !== "free" && paymentLinks[plan.tier] ? (
+                  <a href={paymentLinks[plan.tier]} target="_blank" rel="noreferrer">
+                    Pay
+                  </a>
+                ) : null}
+              </div>
+            </article>
           ))}
         </div>
       </section>

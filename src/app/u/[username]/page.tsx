@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Shirt, Sparkles, Users } from "lucide-react";
+import { MessageButton } from "@/components/messages/message-button";
 import { FollowButton } from "@/components/social/follow-button";
 import { OutfitFeed } from "@/components/social/outfit-feed";
 import {
@@ -69,15 +70,18 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             <p>{profile.bio || "Curating a sharper wardrobe with Styla."}</p>
             <div className="public-profile-actions">
               {user ? (
-                <FollowButton
-                  profileId={profile.id}
-                  initialFollowing={profile.is_following}
-                  disabled={isSelf}
-                />
+                <>
+                  <FollowButton
+                    profileId={profile.id}
+                    initialFollowing={profile.is_following}
+                    disabled={isSelf}
+                  />
+                  <MessageButton profileId={profile.id} disabled={isSelf} />
+                </>
               ) : (
                 <Link className="follow-button" href="/login">
                   <Sparkles size={13} aria-hidden="true" />
-                  Sign in to follow
+                  Sign in to message
                 </Link>
               )}
               {isSelf ? (

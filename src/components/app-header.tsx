@@ -9,6 +9,7 @@ const navItems = [
   { href: "/chat", label: "Chat" },
   { href: "/outfit-check", label: "Check" },
   { href: "/outfits", label: "Outfits" },
+  { href: "/messages", label: "Messages" },
   { href: "/profile", label: "Profile" }
 ];
 
