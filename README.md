@@ -25,6 +25,13 @@ Phase 3 adds:
 - Three generated look cards with wardrobe item photos
 - Save Outfit persistence through `outfits` and `outfit_items`
 
+Phase 4 adds:
+
+- Outfit Check upload flow
+- Style goal selection
+- Gemini image evaluation using Style DNA, wardrobe, and saved outfit context
+- Structured score, summary, strengths, fixes, fit notes, color notes, and missing-piece suggestions
+
 ## Local Setup
 
 1. Install dependencies:
