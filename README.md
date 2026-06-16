@@ -18,6 +18,13 @@ Phase 2 adds:
 - Server-side Gemini clothing categorization
 - Type/color/season filters, stats, grouped cards, and delete
 
+Phase 3 adds:
+
+- Gemini outfit generation from the user's real wardrobe
+- Occasion, mood, and weather controls
+- Three generated look cards with wardrobe item photos
+- Save Outfit persistence through `outfits` and `outfit_items`
+
 ## Local Setup
 
 1. Install dependencies:
@@ -45,6 +52,7 @@ Or paste and run these files in the Supabase SQL editor:
 
 - `supabase/migrations/202606160001_phase1_auth_onboarding.sql`
 - `supabase/migrations/202606160002_phase2_wardrobe.sql`
+- `supabase/migrations/202606160003_phase3_outfit_generation.sql`
 
 4. Run the app:
 

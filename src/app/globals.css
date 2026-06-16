@@ -894,6 +894,212 @@ button:disabled {
   font-size: 12px;
 }
 
+.generate-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.generate-heading p {
+  max-width: 530px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.generate-heading > span {
+  border-radius: 999px;
+  background: rgba(238, 245, 235, 0.88);
+  padding: 8px 13px;
+  color: var(--green-dark);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.generator-panel {
+  display: grid;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 252, 0.78);
+  padding: 22px;
+  box-shadow: 0 16px 46px rgba(40, 55, 31, 0.07);
+}
+
+.generator-choice-row {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  align-items: start;
+  gap: 14px;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 16px;
+}
+
+.generator-choice-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.generator-choice-row > span {
+  padding-top: 8px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.generator-choice-row > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.generate-action {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #171a17;
+  color: white;
+  padding: 0 22px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  box-shadow: 0 12px 24px rgba(23, 26, 23, 0.18);
+}
+
+.generate-action:disabled {
+  opacity: 0.48;
+}
+
+.looks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 34px;
+}
+
+.look-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 252, 0.86);
+  padding: 14px;
+  box-shadow: 0 16px 42px rgba(40, 55, 31, 0.08);
+}
+
+.look-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.look-card h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+}
+
+.look-card-header span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.look-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.look-items figure {
+  display: grid;
+  margin: 0;
+  gap: 5px;
+}
+
+.look-items img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: #f2f4ed;
+  object-fit: contain;
+}
+
+.look-items figcaption {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.look-card p {
+  flex: 1;
+  margin: 14px 0;
+  color: #4f574c;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.look-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.look-tags span {
+  border-radius: 999px;
+  background: #f0f3eb;
+  padding: 4px 7px;
+  color: #636b5f;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.save-look {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #171a17;
+  color: #fff;
+  padding: 0 16px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.save-look:disabled {
+  background: var(--green);
+  opacity: 1;
+}
+
 .spin {
   animation: spin 900ms linear infinite;
 }
@@ -921,7 +1127,12 @@ button:disabled {
 
   .option-grid,
   .foundation-grid,
-  .wardrobe-stats {
+  .wardrobe-stats,
+  .looks-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .generator-choice-row {
     grid-template-columns: 1fr;
   }
 
@@ -971,6 +1182,11 @@ button:disabled {
   }
 
   .hero-row {
+    display: grid;
+  }
+
+  .wardrobe-heading,
+  .generate-heading {
     display: grid;
   }
 }
