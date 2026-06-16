@@ -40,6 +40,22 @@ Phase 5 adds:
 - Public shared outfit pages
 - Bookmark table foundation for the later social phase
 
+Phase 6 adds:
+
+- Chat with Styla
+- Suggested starter prompts
+- Persisted chat history
+- Stateless Gemini calls with Style DNA, wardrobe, saved outfits, and recent chat context
+- Enter to send and Shift+Enter for new lines
+
+Phase 7 adds:
+
+- Profile editing
+- Style DNA editing from the Profile tab
+- Profile photo upload through Supabase Storage
+- Public profile and show-outfits toggles
+- Free/Pro/Elite membership UI state
+
 ## Local Setup
 
 1. Install dependencies:
@@ -70,6 +86,8 @@ Or paste and run these files in the Supabase SQL editor:
 - `supabase/migrations/202606160003_phase3_outfit_generation.sql`
 - `supabase/migrations/202606160004_phase5_outfit_library.sql`
 - `supabase/migrations/202606160005_fix_outfit_item_rls_recursion.sql`
+- `supabase/migrations/202606160006_phase6_chat_messages.sql`
+- `supabase/migrations/202606160007_phase7_profile_settings.sql`
 
 4. Run the app:
 
