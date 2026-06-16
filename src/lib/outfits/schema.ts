@@ -84,3 +84,12 @@ export type SavedOutfit = {
   share_slug: string;
   created_at: string;
 };
+
+export type OutfitItemView = WardrobeItem & {
+  position: number;
+};
+
+export type OutfitLibraryItem = SavedOutfit & {
+  items: OutfitItemView[];
+  source?: "mine" | "saved";
+};

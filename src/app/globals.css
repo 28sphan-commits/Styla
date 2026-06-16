@@ -1328,6 +1328,219 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.library-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.library-heading p {
+  max-width: 500px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.library-tabs {
+  display: inline-flex;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 252, 0.72);
+  padding: 4px;
+}
+
+.library-tabs button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0 13px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.library-tabs button.is-active {
+  color: white;
+  background: #171a17;
+}
+
+.outfit-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.library-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 252, 0.84);
+  padding: 14px;
+  box-shadow: 0 16px 42px rgba(40, 55, 31, 0.08);
+}
+
+.library-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.library-card-tags span,
+.library-card-tags time {
+  border-radius: 999px;
+  background: #f0f3eb;
+  padding: 4px 7px;
+  color: #636b5f;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.library-card-tags time {
+  margin-left: auto;
+  background: transparent;
+  color: var(--muted);
+}
+
+.library-item-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.library-item-strip img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 9px;
+  background: #f2f4ed;
+  object-fit: contain;
+}
+
+.library-card h2 {
+  margin: 0 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+}
+
+.library-card p {
+  flex: 1;
+  margin: 0 0 14px;
+  color: #4f574c;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.share-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 252, 0.72);
+  color: #171a17;
+  padding: 0 16px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.shared-outfit-page {
+  min-height: 100vh;
+  padding: 34px 28px 60px;
+}
+
+.shared-outfit-header {
+  display: flex;
+  width: min(100%, 760px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 auto 34px;
+}
+
+.shared-outfit-header > a:last-child {
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.shared-outfit-shell {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 252, 0.82);
+  padding: 24px;
+  box-shadow: 0 18px 48px rgba(40, 55, 31, 0.08);
+}
+
+.shared-outfit-shell h1 {
+  margin: 8px 0 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(32px, 4vw, 48px);
+}
+
+.shared-outfit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.shared-outfit-grid figure {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.shared-outfit-grid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: #f2f4ed;
+  object-fit: contain;
+}
+
+.shared-outfit-grid figcaption {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.shared-outfit-shell p {
+  margin: 0;
+  color: #4f574c;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.shared-outfit-shell small {
+  display: block;
+  margin-top: 28px;
+  color: var(--green);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 900;
+}
+
 .spin {
   animation: spin 900ms linear infinite;
 }
@@ -1362,7 +1575,8 @@ button:disabled {
 
   .generator-choice-row,
   .check-results,
-  .note-grid {
+  .note-grid,
+  .outfit-library-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1417,7 +1631,8 @@ button:disabled {
 
   .wardrobe-heading,
   .generate-heading,
-  .check-heading {
+  .check-heading,
+  .library-heading {
     display: grid;
   }
 }
