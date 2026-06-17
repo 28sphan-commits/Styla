@@ -9,6 +9,7 @@ import {
   weatherLabels
 } from "@/lib/outfits/schema";
 import type { PublicOutfit } from "@/lib/social/schema";
+import { ClientDate } from "@/components/client-date";
 
 type OutfitFeedProps = {
   outfits: PublicOutfit[];
@@ -111,12 +112,7 @@ export function OutfitFeed({
               )}
               <strong>{outfit.creator?.username ?? "Styla user"}</strong>
             </Link>
-            <time dateTime={outfit.created_at}>
-              {new Intl.DateTimeFormat("en", {
-                month: "short",
-                day: "numeric"
-              }).format(new Date(outfit.created_at))}
-            </time>
+            <ClientDate value={outfit.created_at} format="date" />
           </div>
 
           <Link href={`/outfits/${outfit.share_slug}`} className="social-item-mosaic">

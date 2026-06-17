@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
+import { ClientDate } from "@/components/client-date";
 import {
   moodLabels,
   occasionLabels,
@@ -86,12 +87,7 @@ export function OutfitLibrary({ mine, saved }: OutfitLibraryProps) {
                 <span>{occasionLabels[outfit.occasion]}</span>
                 <span>{moodLabels[outfit.mood]}</span>
                 <span>{weatherLabels[outfit.weather]}</span>
-                <time dateTime={outfit.created_at}>
-                  {new Intl.DateTimeFormat("en", {
-                    month: "short",
-                    day: "numeric"
-                  }).format(new Date(outfit.created_at))}
-                </time>
+                <ClientDate value={outfit.created_at} format="date" />
               </div>
 
               {outfit.items.length ? (

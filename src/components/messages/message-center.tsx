@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, MessageCircle, Send, Shirt } from "lucide-react";
+import { ClientDate } from "@/components/client-date";
 import type {
   DmConversationPreview,
   DmMessage
@@ -216,12 +217,7 @@ export function MessageCenter({
                       >
                         {message.body ? <p>{message.body}</p> : null}
                         {message.outfit ? <MessageOutfitCard outfit={message.outfit} /> : null}
-                        <time dateTime={message.created_at}>
-                          {new Intl.DateTimeFormat("en", {
-                            hour: "numeric",
-                            minute: "2-digit"
-                          }).format(new Date(message.created_at))}
-                        </time>
+                        <ClientDate value={message.created_at} format="time" />
                       </article>
                     ))}
                     <div ref={bottomRef} />
