@@ -43,53 +43,69 @@ function countBy<T extends string>(
   return counts;
 }
 
-export async function attachItemsToOutfits(
-  supabase: SupabaseLike,
-  outfits: SavedOutfit[]
-): Promise<OutfitLibraryItem[]> {
-  if (!outfits.length) {
-    return [];
-  }
+// Outfit rows fetched with their items + each item's wardrobe row embedded in a
+// single PostgREST query, instead of three sequential round-trips.
+const OUTFIT_WITH_ITEMS = "*, outfit_items(position, wardrobe_items(*))";
 
-  const outfitIds = outfits.map((outfit) => outfit.id);
-  const { data: joinRows } = await asQuery(
-    supabase
-      .from("outfit_items")
-      .select("outfit_id, wardrobe_item_id, position")
-  )
-    .in("outfit_id", outfitIds)
-    .order("position", { ascending: true });
+type OutfitRowWithItems = SavedOutfit & {
+  outfit_items?: { position: number; wardrobe_items: WardrobeItem | null }[] | null;
+};
 
-  const rows = (joinRows ?? []) as {
-    outfit_id: string;
-    wardrobe_item_id: string;
-    position: number;
-  }[];
-  const wardrobeIds = Array.from(new Set(rows.map((row) => row.wardrobe_item_id)));
-
-  if (!wardrobeIds.length) {
-    return outfits.map((outfit) => ({ ...outfit, items: [] }));
-  }
-
-  const { data: wardrobeItems } = await asQuery(
-    supabase.from("wardrobe_items").select("*")
-  ).in("id", wardrobeIds);
-
-  const itemById = new Map(
-    ((wardrobeItems ?? []) as WardrobeItem[]).map((item) => [item.id, item])
-  );
-
-  return outfits.map((outfit) => ({
-    ...outfit,
-    items: rows
-      .filter((row) => row.outfit_id === outfit.id)
+// Reshapes embedded outfit rows into OutfitLibraryItem. Pure — no DB round-trips.
+function mapOutfitItems(rows: OutfitRowWithItems[]): OutfitLibraryItem[] {
+  return rows.map(({ outfit_items, ...outfit }) => ({
+    ...(outfit as SavedOutfit),
+    items: (outfit_items ?? [])
+      .filter(
+        (join): join is { position: number; wardrobe_items: WardrobeItem } =>
+          Boolean(join.wardrobe_items)
+      )
       .sort((a, b) => a.position - b.position)
-      .map((row) => {
-        const item = itemById.get(row.wardrobe_item_id);
-        return item ? ({ ...item, position: row.position } as OutfitItemView) : null;
-      })
-      .filter((item): item is OutfitItemView => Boolean(item))
+      .map(
+        (join) =>
+          ({ ...join.wardrobe_items, position: join.position }) as OutfitItemView
+      )
   }));
+}
+
+export async function loadSharedOutfit(
+  supabase: SupabaseLike,
+  shareSlug: string
+): Promise<OutfitLibraryItem | null> {
+  const { data: outfit } = await asQuery(
+    supabase.from("outfits").select(OUTFIT_WITH_ITEMS)
+  )
+    .eq("share_slug", shareSlug)
+    .eq("is_public", true)
+    .maybeSingle();
+
+  return outfit ? mapOutfitItems([outfit as OutfitRowWithItems])[0] ?? null : null;
+}
+
+export async function loadOwnOutfits(
+  supabase: SupabaseLike,
+  userId: string
+): Promise<OutfitLibraryItem[]> {
+  const { data: outfitRows } = await asQuery(
+    supabase.from("outfits").select(OUTFIT_WITH_ITEMS)
+  )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  return mapOutfitItems((outfitRows ?? []) as OutfitRowWithItems[]);
+}
+
+export async function loadOutfitsByIds(
+  supabase: SupabaseLike,
+  ids: string[]
+): Promise<OutfitLibraryItem[]> {
+  if (!ids.length) return [];
+
+  const { data: outfitRows } = await asQuery(
+    supabase.from("outfits").select(OUTFIT_WITH_ITEMS)
+  ).in("id", ids);
+
+  return mapOutfitItems((outfitRows ?? []) as OutfitRowWithItems[]);
 }
 
 export async function loadBookmarkedOutfits(
@@ -110,13 +126,12 @@ export async function loadBookmarkedOutfits(
     return [];
   }
 
-  const { data: outfits } = await asQuery(supabase.from("outfits").select("*")).in(
-    "id",
-    outfitIds
-  );
+  const { data: outfits } = await asQuery(
+    supabase.from("outfits").select(OUTFIT_WITH_ITEMS)
+  ).in("id", outfitIds);
   const order = new Map(outfitIds.map((id, index) => [id, index]));
 
-  return ((outfits ?? []) as SavedOutfit[]).sort(
+  return mapOutfitItems((outfits ?? []) as OutfitRowWithItems[]).sort(
     (a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)
   );
 }
@@ -135,7 +150,7 @@ export async function loadPublicOutfits(
   }
 
   let outfitQuery = asQuery(
-    supabase.from("outfits").select("*")
+    supabase.from("outfits").select(OUTFIT_WITH_ITEMS)
   )
     .eq("is_public", true)
     .order("created_at", { ascending: false })
@@ -147,10 +162,7 @@ export async function loadPublicOutfits(
   if (followingIds.length) outfitQuery = outfitQuery.in("user_id", followingIds);
 
   const { data: outfitRows } = await outfitQuery;
-  const outfits = await attachItemsToOutfits(
-    supabase,
-    (outfitRows ?? []) as SavedOutfit[]
-  );
+  const outfits = mapOutfitItems((outfitRows ?? []) as OutfitRowWithItems[]);
 
   return attachSocialData(supabase, userId, outfits);
 }
@@ -217,17 +229,14 @@ export async function loadPublicOutfitsForProfile(
   profileId: string
 ): Promise<PublicOutfit[]> {
   const { data: outfitRows } = await asQuery(
-    supabase.from("outfits").select("*")
+    supabase.from("outfits").select(OUTFIT_WITH_ITEMS)
   )
     .eq("user_id", profileId)
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(24);
 
-  const outfits = await attachItemsToOutfits(
-    supabase,
-    (outfitRows ?? []) as SavedOutfit[]
-  );
+  const outfits = mapOutfitItems((outfitRows ?? []) as OutfitRowWithItems[]);
 
   return attachSocialData(supabase, currentUserId, outfits);
 }

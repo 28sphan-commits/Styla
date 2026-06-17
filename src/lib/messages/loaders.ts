@@ -1,8 +1,9 @@
 import {
-  attachItemsToOutfits,
-  loadBookmarkedOutfits
+  loadBookmarkedOutfits,
+  loadOutfitsByIds,
+  loadOwnOutfits
 } from "@/lib/outfits/loaders";
-import type { OutfitLibraryItem, SavedOutfit } from "@/lib/outfits/schema";
+import type { OutfitLibraryItem } from "@/lib/outfits/schema";
 import type {
   DmConversation,
   DmConversationPreview,
@@ -138,16 +139,10 @@ export async function loadShareableDmOutfits(
   supabase: SupabaseLike,
   userId: string
 ): Promise<OutfitLibraryItem[]> {
-  const { data: mineRows } = await asQuery(
-    supabase.from("outfits").select("*")
-  )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(12);
-
-  const bookmarkedRows = await loadBookmarkedOutfits(supabase, userId);
-  const mine = await attachItemsToOutfits(supabase, (mineRows ?? []) as SavedOutfit[]);
-  const saved = await attachItemsToOutfits(supabase, bookmarkedRows.slice(0, 12));
+  const [mine, saved] = await Promise.all([
+    loadOwnOutfits(supabase, userId),
+    loadBookmarkedOutfits(supabase, userId)
+  ]);
 
   const byId = new Map<string, OutfitLibraryItem>();
   [...mine, ...saved].forEach((outfit) => byId.set(outfit.id, outfit));
@@ -164,13 +159,7 @@ async function attachOutfitsToMessages(
 
   if (!outfitIds.length) return messages;
 
-  const { data: outfitRows } = await asQuery(
-    supabase.from("outfits").select("*")
-  ).in("id", outfitIds);
-  const outfits = await attachItemsToOutfits(
-    supabase,
-    (outfitRows ?? []) as SavedOutfit[]
-  );
+  const outfits = await loadOutfitsByIds(supabase, outfitIds);
   const outfitById = new Map(outfits.map((outfit) => [outfit.id, outfit]));
 
   return messages.map((message) => ({

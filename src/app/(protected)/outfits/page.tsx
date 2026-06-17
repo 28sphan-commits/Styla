@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { OutfitLibrary } from "@/components/outfits/outfit-library";
-import {
-  attachItemsToOutfits,
-  loadBookmarkedOutfits
-} from "@/lib/outfits/loaders";
-import type { OutfitLibraryItem, SavedOutfit } from "@/lib/outfits/schema";
+import { loadBookmarkedOutfits, loadOwnOutfits } from "@/lib/outfits/loaders";
+import type { OutfitLibraryItem } from "@/lib/outfits/schema";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function OutfitsPage() {
@@ -32,15 +29,10 @@ export default async function OutfitsPage() {
     redirect("/onboarding");
   }
 
-  const { data: mineRows } = await supabase
-    .from("outfits")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  const bookmarkedRows = await loadBookmarkedOutfits(supabase, user.id);
-  const mine = await attachItemsToOutfits(supabase, (mineRows ?? []) as SavedOutfit[]);
-  const saved = await attachItemsToOutfits(supabase, bookmarkedRows);
+  const [mine, saved] = await Promise.all([
+    loadOwnOutfits(supabase, user.id),
+    loadBookmarkedOutfits(supabase, user.id)
+  ]);
 
   return (
     <OutfitLibrary

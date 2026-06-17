@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { attachItemsToOutfits } from "@/lib/outfits/loaders";
+import { loadSharedOutfit } from "@/lib/outfits/loaders";
 import {
   moodLabels,
   occasionLabels,
-  weatherLabels,
-  type SavedOutfit
+  weatherLabels
 } from "@/lib/outfits/schema";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,20 +20,11 @@ export default async function SharedOutfitPage({
   }
 
   const { shareSlug } = await params;
-  const { data: outfit } = await supabase
-    .from("outfits")
-    .select("*")
-    .eq("share_slug", shareSlug)
-    .eq("is_public", true)
-    .maybeSingle();
+  const outfitWithItems = await loadSharedOutfit(supabase, shareSlug);
 
-  if (!outfit) {
+  if (!outfitWithItems) {
     notFound();
   }
-
-  const [outfitWithItems] = await attachItemsToOutfits(supabase, [
-    outfit as SavedOutfit
-  ]);
 
   return (
     <main className="shared-outfit-page">
