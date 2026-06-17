@@ -21,6 +21,7 @@ type ExplorePageProps = {
     feed?: string;
     occasion?: string;
     mood?: string;
+    q?: string;
   }>;
 };
 
@@ -70,6 +71,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   ]);
 
   const params = await searchParams;
+  const query = params.q?.trim() ?? "";
   const filter: ExploreFilter = {
     feed: params.feed === "following" ? "following" : "all",
     occasion: outfitOccasions.includes(params.occasion as never)
@@ -78,10 +80,28 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     mood: outfitMoods.includes(params.mood as never) ? params.mood : undefined
   };
 
-  const [outfits, profiles] = await Promise.all([
-    loadPublicOutfits(supabase, user.id, filter, 18),
-    loadPublicProfiles(supabase, user.id, "", 6)
+  const [allOutfits, profiles] = await Promise.all([
+    loadPublicOutfits(supabase, user.id, filter, query ? 48 : 18),
+    loadPublicProfiles(supabase, user.id, query, query ? 18 : 6)
   ]);
+
+  const normalizedQuery = query.toLowerCase();
+  const outfits = normalizedQuery
+    ? allOutfits.filter((outfit) =>
+        [
+          outfit.title,
+          outfit.description,
+          outfit.occasion,
+          outfit.mood,
+          outfit.weather,
+          outfit.creator?.username ?? "",
+          outfit.creator?.full_name ?? ""
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      )
+    : allOutfits;
 
   const firstName =
     profile?.full_name?.split(" ").filter(Boolean)[0] ??
@@ -148,12 +168,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
         <div className="social-section-heading">
           <div>
             <div className="section-kicker">Public Feed</div>
-            <h2>Explore Looks</h2>
+            <h2>{query ? `Looks matching "${query}"` : "Explore Looks"}</h2>
           </div>
-          <Link className="search-pill" href="/search">
-            <Search size={13} aria-hidden="true" />
-            Search
-          </Link>
         </div>
 
         <div className="social-filter-bar">
@@ -218,10 +234,28 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
         <div className="social-section-heading">
           <div>
             <div className="section-kicker">People</div>
-            <h2>Stylists to Follow</h2>
+            <h2>{query ? `Results for "${query}"` : "Stylists to Follow"}</h2>
           </div>
           <Sparkles size={18} aria-hidden="true" />
         </div>
+        <form className="search-form" action="/explore">
+          <Search size={15} aria-hidden="true" />
+          <input
+            name="q"
+            defaultValue={query}
+            placeholder="Search people, casual looks, date outfits..."
+          />
+          {filter.feed === "following" ? (
+            <input type="hidden" name="feed" value="following" />
+          ) : null}
+          {filter.occasion ? (
+            <input type="hidden" name="occasion" value={filter.occasion} />
+          ) : null}
+          {filter.mood ? (
+            <input type="hidden" name="mood" value={filter.mood} />
+          ) : null}
+          <button type="submit">Search</button>
+        </form>
         <ProfileGrid profiles={profiles} currentUserId={user.id} />
       </section>
     </section>
