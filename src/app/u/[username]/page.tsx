@@ -59,7 +59,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
         <div className="public-profile-hero">
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="public-avatar" src={profile.avatar_url} alt="" />
+            <img className="public-avatar" src={profile.avatar_url} alt="" referrerPolicy="no-referrer" />
           ) : (
             <div className="public-avatar">{profile.username.slice(0, 1).toUpperCase()}</div>
           )}

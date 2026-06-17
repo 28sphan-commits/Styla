@@ -151,7 +151,7 @@ export function MessageCenter({
               >
                 {conversation.otherProfile?.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={conversation.otherProfile.avatar_url} alt="" />
+                  <img src={conversation.otherProfile.avatar_url} alt="" referrerPolicy="no-referrer" />
                 ) : (
                   <span>
                     {conversation.otherProfile?.username?.slice(0, 1).toUpperCase() ?? "S"}
@@ -185,7 +185,7 @@ export function MessageCenter({
                 <div className="creator-chip">
                   {selectedConversation.otherProfile?.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selectedConversation.otherProfile.avatar_url} alt="" />
+                    <img src={selectedConversation.otherProfile.avatar_url} alt="" referrerPolicy="no-referrer" />
                   ) : (
                     <span>
                       {selectedConversation.otherProfile?.username

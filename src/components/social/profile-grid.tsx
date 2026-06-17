@@ -26,7 +26,7 @@ export function ProfileGrid({ profiles, currentUserId }: ProfileGridProps) {
           <Link href={`/u/${profile.username}`} className="profile-result-link">
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt="" />
+              <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" />
             ) : (
               <span>{profile.username?.slice(0, 1).toUpperCase() ?? "S"}</span>
             )}

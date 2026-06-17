@@ -105,7 +105,7 @@ export function OutfitFeed({
             >
               {outfit.creator?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={outfit.creator.avatar_url} alt="" />
+                <img src={outfit.creator.avatar_url} alt="" referrerPolicy="no-referrer" />
               ) : (
                 <span>{outfit.creator?.username?.slice(0, 1).toUpperCase() ?? "S"}</span>
               )}

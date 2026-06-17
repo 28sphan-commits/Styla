@@ -119,7 +119,7 @@ export function ProfileEditor({
         >
           {avatarPreview || profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarPreview ?? profile.avatar_url ?? ""} alt="" />
+            <img src={avatarPreview ?? profile.avatar_url ?? ""} alt="" referrerPolicy="no-referrer" />
           ) : (
             <Camera size={22} aria-hidden="true" />
           )}
