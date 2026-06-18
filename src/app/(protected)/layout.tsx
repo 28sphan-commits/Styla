@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
+import { StylaChatWidget } from "@/components/chat/styla-chat-widget";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ProtectedLayout({
@@ -31,6 +32,7 @@ export default async function ProtectedLayout({
     <div className="app-frame">
       <AppHeader username={profile?.username} email={profile?.email ?? user.email} />
       <main className="app-main">{children}</main>
+      <StylaChatWidget />
     </div>
   );
 }

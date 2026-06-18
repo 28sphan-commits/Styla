@@ -5,7 +5,6 @@ const navItems = [
   { href: "/explore", label: "Explore" },
   { href: "/wardrobe", label: "Wardrobe" },
   { href: "/generate", label: "Generate" },
-  { href: "/chat", label: "Chat" },
   { href: "/outfit-check", label: "Check" },
   { href: "/outfits", label: "Outfits" },
   { href: "/messages", label: "Messages" },

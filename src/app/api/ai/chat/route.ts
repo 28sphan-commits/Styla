@@ -106,6 +106,40 @@ async function askGemini({
   return trimAnswer(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }
 
+export async function GET() {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Supabase is not configured." },
+      { status: 500 }
+    );
+  }
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  if (error) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    messages: ((data ?? []) as ChatMessage[]).reverse()
+  });
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
 

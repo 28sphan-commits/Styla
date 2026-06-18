@@ -3060,3 +3060,252 @@ select:focus-visible {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Floating Styla stylist widget (replaces the dedicated /chat page) */
+.styla-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  border: 1px solid var(--green-dark);
+  background: var(--green);
+  color: var(--paper-strong);
+  box-shadow: var(--shadow);
+}
+
+.styla-fab:hover {
+  transform: translateY(-2px);
+}
+
+.styla-fab.is-open {
+  background: var(--green-dark);
+}
+
+.styla-fab-mark {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.styla-drawer {
+  position: fixed;
+  right: 22px;
+  bottom: 92px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 32px));
+  height: min(560px, calc(100vh - 132px));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper-strong);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: styla-drawer-in 220ms var(--ease);
+}
+
+@keyframes styla-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.styla-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--green-soft);
+}
+
+.styla-drawer-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.styla-drawer-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--green);
+  color: var(--paper-strong);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 18px;
+}
+
+.styla-drawer-id strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.styla-drawer-id small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.styla-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.styla-drawer-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.styla-drawer-actions button:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.styla-drawer-close {
+  padding: 6px 8px;
+}
+
+.styla-drawer-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.styla-drawer-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.styla-day-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.styla-day-divider {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 2px;
+}
+
+.styla-day-divider span {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.styla-history-link {
+  margin-top: 8px;
+  border: 0;
+  background: none;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.styla-drawer-error {
+  margin: 0;
+  padding: 8px 14px;
+  background: #f8ecec;
+  color: #8a2b2b;
+  font-size: 12px;
+}
+
+.styla-drawer-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: var(--paper-strong);
+}
+
+.styla-drawer-composer textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 120px;
+  resize: none;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  padding: 10px 12px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.styla-drawer-composer textarea:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+.styla-drawer-composer button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--green-dark);
+  border-radius: 999px;
+  background: var(--green);
+  color: var(--paper-strong);
+}
+
+.styla-drawer-composer button:disabled {
+  opacity: 0.5;
+}
+
+@media (max-width: 520px) {
+  .styla-fab {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .styla-drawer {
+    right: 12px;
+    left: 12px;
+    bottom: 84px;
+    width: auto;
+    height: min(72vh, calc(100vh - 110px));
+  }
+}
