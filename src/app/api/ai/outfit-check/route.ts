@@ -107,6 +107,7 @@ async function checkWithGemini({
                 "You are Styla, an honest AI fashion advisor. Evaluate the uploaded outfit photo against the selected style goal. " +
                 "Be specific and useful. Comment on color coordination, cohesion, fit/proportion, goal alignment, and realistic improvements. " +
                 "Use the user's Style DNA and wardrobe context where relevant, but evaluate the photo itself. " +
+                "Keep every field concise and within these character limits: summary 500, each strength 180, each fix 220, each missing piece 120, colorNotes 260, fitNotes 260. Provide 1 to 4 strengths and 1 to 4 fixes. " +
                 "Return only strict JSON: {\"score\": number 0-100, \"summary\": string, \"strengths\": string[], \"fixes\": string[], \"missingPieces\": string[], \"colorNotes\": string, \"fitNotes\": string}.\n\n" +
                 JSON.stringify(
                   {
