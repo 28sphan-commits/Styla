@@ -125,6 +125,8 @@ The local app runs at `http://localhost:3000`.
 
 ## Deploying
 
+> For a step-by-step Vercel checklist (env vars, redirect URLs, migrations), see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 Deploy with Vercel using the same environment variables from `.env.local`.
 
 In Supabase, add both local and production auth redirect URLs:
