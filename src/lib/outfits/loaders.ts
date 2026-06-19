@@ -16,6 +16,16 @@ type SupabaseLike = {
   };
 };
 
+// Extended variant used only by functions that call RPC endpoints.
+// PromiseLike (not Promise) because PostgrestFilterBuilder is thenable but
+// not a full Promise.
+type SupabaseLikeWithRpc = SupabaseLike & {
+  rpc: (
+    fn: string,
+    params?: Record<string, unknown>
+  ) => PromiseLike<{ data: unknown; error: unknown }>;
+};
+
 type QueryBuilder = {
   eq: (column: string, value: unknown) => QueryBuilder;
   neq: (column: string, value: unknown) => QueryBuilder;
@@ -221,6 +231,30 @@ export async function loadPublicProfiles(
     currentUserId,
     ((profiles ?? []) as PublicProfile[]).filter((profile) => profile.username)
   );
+}
+
+export async function loadRecommendedProfiles(
+  supabase: SupabaseLikeWithRpc,
+  currentUserId: string,
+  limit = 6
+): Promise<PublicProfile[]> {
+  const { data } = await supabase.rpc("get_recommended_stylists", {
+    viewer_id: currentUserId,
+    limit_n: limit
+  });
+
+  const rows = (data ?? []) as Array<PublicProfile & { match_score: number }>;
+  const profiles = rows
+    .filter((row) => row.username)
+    .map(({ match_score: _ms, ...profile }) => profile as PublicProfile);
+
+  // If the viewer has items but none matched any other user's wardrobe yet,
+  // fall back to the popular-profiles query so the section is never empty.
+  if (!profiles.length) {
+    return loadPublicProfiles(supabase, currentUserId, "", limit);
+  }
+
+  return profiles;
 }
 
 export async function loadPublicOutfitsForProfile(

@@ -5,7 +5,8 @@ import { OutfitFeed } from "@/components/social/outfit-feed";
 import { ProfileGrid } from "@/components/social/profile-grid";
 import {
   loadPublicOutfits,
-  loadPublicProfiles
+  loadPublicProfiles,
+  loadRecommendedProfiles
 } from "@/lib/outfits/loaders";
 import {
   moodLabels,
@@ -82,7 +83,9 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   const [allOutfits, profiles] = await Promise.all([
     loadPublicOutfits(supabase, user.id, filter, query ? 48 : 18),
-    loadPublicProfiles(supabase, user.id, query, query ? 18 : 6)
+    query
+      ? loadPublicProfiles(supabase, user.id, query, 18)
+      : loadRecommendedProfiles(supabase, user.id, 6)
   ]);
 
   const normalizedQuery = query.toLowerCase();
