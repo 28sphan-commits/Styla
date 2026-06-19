@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { destinationForUser } from "@/lib/supabase/post-auth";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -35,13 +36,7 @@ export async function GET(request: Request) {
     updated_at: new Date().toISOString()
   });
 
-  const { data: styleDna } = await supabase
-    .from("style_dna")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const destination = await destinationForUser(supabase, user.id, next);
 
-  return NextResponse.redirect(
-    new URL(styleDna ? next : "/onboarding", request.url)
-  );
+  return NextResponse.redirect(new URL(destination, request.url));
 }

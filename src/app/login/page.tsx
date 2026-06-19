@@ -3,7 +3,11 @@ import { LoginForm } from "@/components/login-form";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams
+}: {
+  searchParams: Promise<{ auth?: string }>;
+}) {
   if (isSupabaseConfigured) {
     const supabase = await createClient();
     const {
@@ -15,10 +19,12 @@ export default async function LoginPage() {
     }
   }
 
+  const { auth } = await searchParams;
+
   return (
     <main className="login-page">
       <div className="login-overlay" />
-      <LoginForm isConfigured={isSupabaseConfigured} />
+      <LoginForm isConfigured={isSupabaseConfigured} oauthError={auth === "error"} />
     </main>
   );
 }
