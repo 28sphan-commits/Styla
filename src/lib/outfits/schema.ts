@@ -93,3 +93,19 @@ export type OutfitLibraryItem = SavedOutfit & {
   items: OutfitItemView[];
   source?: "mine" | "saved";
 };
+
+// Conversation-driven generation: the /generate workspace sends an ephemeral
+// message thread and a mode (refine chat vs. final generation).
+export const generateChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().trim().min(1).max(1200)
+});
+
+export const generateRequestSchema = z.object({
+  messages: z.array(generateChatMessageSchema).min(1).max(24),
+  mode: z.enum(["chat", "generate"]),
+  fillGaps: z.boolean().optional()
+});
+
+export type GenerateChatMessage = z.infer<typeof generateChatMessageSchema>;
+export type GenerateRequest = z.infer<typeof generateRequestSchema>;

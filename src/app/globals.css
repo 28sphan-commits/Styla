@@ -3309,3 +3309,118 @@ select:focus-visible {
     height: min(72vh, calc(100vh - 110px));
   }
 }
+
+/* Conversational outfit generator */
+.generate-prompt-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 252, 0.82);
+  padding: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.generate-prompt-bar textarea {
+  flex: 1;
+  min-height: 48px;
+  max-height: 160px;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.generate-prompt-bar textarea::placeholder {
+  color: #a0a79a;
+}
+
+.generate-prompt-send {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid var(--green-dark);
+  border-radius: 50%;
+  background: var(--green);
+  color: white;
+}
+
+.generate-prompt-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.generate-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 252, 0.6);
+  padding: 16px;
+}
+
+.generate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.generate-actions .generate-action {
+  margin: 0;
+}
+
+.generate-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  padding: 11px 18px;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.generate-skip:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.generate-skip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.generate-tags {
+  margin-top: 18px;
+}
+
+.generate-tags-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.generate-tags-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--soft);
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: var(--green-dark);
+}
