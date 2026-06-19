@@ -214,31 +214,15 @@ export function OutfitGenerator({ wardrobeItems }: OutfitGeneratorProps) {
         </div>
       </div>
 
-      <form className="generate-prompt-bar" onSubmit={handlePromptSubmit}>
-        <textarea
-          ref={promptRef}
-          value={draft}
-          rows={2}
-          placeholder="Describe your outfit… e.g. #Occasion:Date dinner, warm earth tones, light layers"
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={handlePromptKeyDown}
-        />
-        <button
-          type="submit"
-          className="generate-prompt-send"
-          disabled={!draft.trim() || busy}
-          aria-label="Send to stylist"
-        >
-          {isReplying ? (
-            <Loader2 size={16} className="spin" aria-hidden="true" />
-          ) : (
-            <ArrowUp size={16} aria-hidden="true" />
-          )}
-        </button>
-      </form>
-
-      {messages.length ? (
+      <div className="generate-conversation">
         <div className="generate-chat" aria-live="polite">
+          <article className="message is-assistant">
+            <p>
+              Hi there! I&apos;m Styla, ready to help you craft a look. Tell me the
+              occasion, mood, or weather — or tap a shortcut above — and I&apos;ll pull
+              outfits from your wardrobe.
+            </p>
+          </article>
           {messages.map((message, index) => (
             <article
               key={`${message.role}-${index}`}
@@ -256,7 +240,30 @@ export function OutfitGenerator({ wardrobeItems }: OutfitGeneratorProps) {
             </article>
           ) : null}
         </div>
-      ) : null}
+
+        <form className="generate-prompt-bar" onSubmit={handlePromptSubmit}>
+          <textarea
+            ref={promptRef}
+            value={draft}
+            rows={2}
+            placeholder="Describe your outfit… e.g. #Occasion:Date dinner, warm earth tones, light layers"
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={handlePromptKeyDown}
+          />
+          <button
+            type="submit"
+            className="generate-prompt-send"
+            disabled={!draft.trim() || busy}
+            aria-label="Send to stylist"
+          >
+            {isReplying ? (
+              <Loader2 size={16} className="spin" aria-hidden="true" />
+            ) : (
+              <ArrowUp size={16} aria-hidden="true" />
+            )}
+          </button>
+        </form>
+      </div>
 
       <div className="generate-actions">
         <button

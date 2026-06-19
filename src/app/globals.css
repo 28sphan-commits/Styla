@@ -201,6 +201,161 @@ select:focus-visible {
   line-height: 1.65;
 }
 
+/* Email / username + password auth */
+.auth-tabs {
+  display: inline-flex;
+  width: min(100%, 500px);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--soft);
+}
+
+.auth-tab {
+  flex: 1;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 11px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.auth-tab.is-active {
+  background: var(--paper-strong);
+  color: var(--ink);
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-form {
+  display: grid;
+  width: min(100%, 500px);
+  gap: 16px;
+  text-align: left;
+}
+
+.auth-field {
+  display: grid;
+  gap: 7px;
+}
+
+.auth-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.auth-hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.auth-field input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-strong);
+  padding: 14px 16px;
+  color: var(--ink);
+  font-size: 15px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.auth-field input::placeholder {
+  color: #a8ad9f;
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(81, 125, 74, 0.16);
+}
+
+.auth-field input:disabled {
+  opacity: 0.6;
+}
+
+.auth-submit {
+  display: inline-flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--green);
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.auth-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: var(--green-dark);
+}
+
+.auth-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-message {
+  width: min(100%, 500px);
+  margin: 0;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.auth-message.is-error {
+  border: 1px solid #e7c6c0;
+  background: #fbeeea;
+  color: #8f3b2c;
+}
+
+.auth-message.is-success {
+  border: 1px solid #c2dcc0;
+  background: var(--green-soft);
+  color: #2f5a31;
+}
+
+.auth-or {
+  display: grid;
+  width: min(100%, 500px);
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+}
+
+.auth-or span {
+  height: 1px;
+  background: var(--line);
+}
+
+.auth-or small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
 .onboarding-page {
   min-height: 100vh;
   padding: 24px 28px 42px;
@@ -336,6 +491,46 @@ select:focus-visible {
 
 .choice-card.is-selected i {
   border: 8px solid var(--green);
+}
+
+.freewrite-field {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 980px);
+  margin: 42px auto 42px;
+  gap: 12px;
+}
+
+.freewrite-field textarea {
+  width: 100%;
+  min-height: 220px;
+  padding: 24px 28px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 252, 0.82);
+  box-shadow: 0 10px 36px rgba(70, 78, 61, 0.04);
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--ink);
+  line-height: 1.65;
+  resize: vertical;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.freewrite-field textarea:focus {
+  outline: none;
+  border-color: rgba(81, 125, 74, 0.5);
+  box-shadow: var(--shadow);
+}
+
+.freewrite-field textarea::placeholder {
+  color: var(--muted);
+}
+
+.freewrite-field > small {
+  color: var(--muted);
+  font-size: 13px;
+  padding-left: 4px;
 }
 
 .onboarding-controls {
@@ -1903,14 +2098,6 @@ select:focus-visible {
   font-size: 15px;
 }
 
-.profile-result-link small {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-}
-
 .profile-result-card p {
   min-height: 38px;
   margin: 0;
@@ -3311,16 +3498,22 @@ select:focus-visible {
 }
 
 /* Conversational outfit generator */
+.generate-conversation {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 252, 0.6);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
 .generate-prompt-bar {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  margin-top: 18px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  border-top: 1px solid var(--line);
   background: rgba(255, 255, 252, 0.82);
   padding: 12px;
-  box-shadow: var(--shadow-soft);
 }
 
 .generate-prompt-bar textarea {
@@ -3361,12 +3554,9 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 16px;
   max-height: 360px;
   overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: rgba(255, 255, 252, 0.6);
+  background: transparent;
   padding: 16px;
 }
 
