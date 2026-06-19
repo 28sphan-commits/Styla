@@ -32,7 +32,6 @@ export function ProfileGrid({ profiles, currentUserId }: ProfileGridProps) {
             )}
             <div>
               <strong>@{profile.username}</strong>
-              <small>{profile.full_name ?? "Styla member"}</small>
             </div>
           </Link>
           <p>{profile.bio || "Curating a sharper wardrobe with Styla."}</p>

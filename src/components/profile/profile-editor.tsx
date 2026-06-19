@@ -134,7 +134,7 @@ export function ProfileEditor({
         <div>
           <div className="section-kicker">The Profile</div>
           <h1>{profile.full_name ?? "Your Profile"}</h1>
-          <p>{profile.email}</p>
+          <p>{profile.email ?? "No email on file"}</p>
           <small>Only you see your name. Others see your username.</small>
         </div>
       </div>
