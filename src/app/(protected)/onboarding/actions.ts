@@ -43,9 +43,12 @@ export async function saveOnboarding(formData: FormData) {
     updated_at: new Date().toISOString()
   });
 
+  const styleNotes = (formData.get("style_notes") as string | null)?.trim() ?? null;
+
   await supabase.from("style_dna").upsert({
     user_id: user.id,
     ...parsed.data,
+    style_notes: styleNotes || null,
     updated_at: new Date().toISOString()
   });
 

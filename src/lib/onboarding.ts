@@ -94,36 +94,69 @@ export const colorPreferenceOptions = [
   { value: "monochrome", label: "Monochrome", detail: "One-color, tonal dressing", mark: "M" }
 ] as const;
 
-export const onboardingSteps = [
+type ChoiceOption = { value: string; label: string; detail: string; mark: string };
+
+export type ChoiceStep = {
+  type: "choice";
+  key: string;
+  eyebrow: string;
+  question: string;
+  options: readonly ChoiceOption[];
+};
+
+export type FreetextStep = {
+  type: "freewrite";
+  key: "style_notes";
+  eyebrow: string;
+  question: string;
+  placeholder: string;
+};
+
+export type OnboardingStep = ChoiceStep | FreetextStep;
+
+export const onboardingSteps: readonly OnboardingStep[] = [
   {
+    type: "choice",
     key: "style_aesthetic",
     eyebrow: "Style Discovery - Chapter 01",
     question: "What's your style aesthetic?",
     options: styleAestheticOptions
   },
   {
+    type: "choice",
     key: "body_type",
     eyebrow: "Style Discovery - Chapter 02",
     question: "How would you describe your body type?",
     options: bodyTypeOptions
   },
   {
+    type: "choice",
     key: "lifestyle",
     eyebrow: "Style Discovery - Chapter 03",
     question: "What best describes your lifestyle?",
     options: lifestyleOptions
   },
   {
+    type: "choice",
     key: "budget_per_item",
     eyebrow: "Style Discovery - Chapter 04",
     question: "What's your typical budget per item?",
     options: budgetOptions
   },
   {
+    type: "choice",
     key: "color_preference",
     eyebrow: "Style Discovery - Chapter 05",
     question: "Which colors do you gravitate toward?",
     options: colorPreferenceOptions
+  },
+  {
+    type: "freewrite",
+    key: "style_notes",
+    eyebrow: "Style Discovery - Chapter 06",
+    question: "Tell us about your style in your own words.",
+    placeholder:
+      "Describe your current style situation — what you love wearing, what you struggle to pull off, specific pieces you want to build around, or any look you're chasing..."
   }
 ] as const;
 
