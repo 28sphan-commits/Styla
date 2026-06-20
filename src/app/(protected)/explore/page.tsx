@@ -135,7 +135,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               <Camera size={14} aria-hidden="true" />
               Check
             </Link>
-            <Link href="/chat">
+            <Link href="/messages">
               <MessageCircle size={14} aria-hidden="true" />
               Chat
             </Link>
@@ -176,43 +176,49 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
         </div>
 
         <div className="social-filter-bar">
+          {/* All: active only when nothing is selected; always clears all filters */}
           <Link
-            className={filter.feed !== "following" ? "is-active" : undefined}
-            href={filterHref({ occasion: filter.occasion, mood: filter.mood })}
+            className={
+              filter.feed !== "following" && !filter.occasion && !filter.mood
+                ? "is-active"
+                : undefined
+            }
+            href="/explore"
           >
             All
           </Link>
+          {/* Following: toggles the feed param; preserves any active category filter */}
           <Link
             className={filter.feed === "following" ? "is-active" : undefined}
-            href={filterHref({
-              feed: "following",
-              occasion: filter.occasion,
-              mood: filter.mood
-            })}
+            href={filterHref(
+              filter.feed === "following"
+                ? { occasion: filter.occasion, mood: filter.mood }
+                : { feed: "following", occasion: filter.occasion, mood: filter.mood }
+            )}
           >
             Following
           </Link>
+          {/* Occasion pills: single-selection (clears mood); clicking active pill toggles off */}
           {outfitOccasions.slice(0, 4).map((occasion) => (
             <Link
               key={occasion}
               className={filter.occasion === occasion ? "is-active" : undefined}
               href={filterHref({
                 feed: filter.feed === "following" ? "following" : undefined,
-                occasion,
-                mood: filter.mood
+                occasion: filter.occasion === occasion ? undefined : occasion
               })}
             >
               {occasionLabels[occasion]}
             </Link>
           ))}
+          {/* Mood pills: single-selection (clears occasion); clicking active pill toggles off */}
           {outfitMoods.slice(0, 4).map((mood) => (
             <Link
               key={mood}
               className={filter.mood === mood ? "is-active" : undefined}
               href={filterHref({
                 feed: filter.feed === "following" ? "following" : undefined,
-                occasion: filter.occasion,
-                mood
+                mood: filter.mood === mood ? undefined : mood
               })}
             >
               {moodLabels[mood]}
