@@ -7,6 +7,7 @@ const publishSchema = z.object({
   title: z.string().min(2).max(40),
   description: z.string().max(1000).default(""),
   allowSaves: z.boolean().default(true),
+  allowComments: z.boolean().default(true),
   visibility: z.enum(["public", "friends"]).default("public")
 });
 
@@ -54,6 +55,7 @@ export async function POST(
       title: cleanTitle,
       description: cleanDescription,
       allow_saves: parsed.data.allowSaves,
+      allow_comments: parsed.data.allowComments,
       visibility: parsed.data.visibility,
       updated_at: new Date().toISOString()
     })

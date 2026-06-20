@@ -14,6 +14,7 @@ export type PublicProfile = Pick<
 export type PublicOutfit = OutfitLibraryItem & {
   creator: PublicProfile | null;
   like_count: number;
+  comment_count: number;
   is_liked: boolean;
   is_bookmarked: boolean;
 };

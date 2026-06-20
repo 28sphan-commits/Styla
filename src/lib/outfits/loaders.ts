@@ -381,22 +381,27 @@ async function attachSocialData(
   const outfitIds = outfits.map((outfit) => outfit.id);
   const creatorIds = Array.from(new Set(outfits.map((outfit) => outfit.user_id)));
 
-  const [{ data: profiles }, { data: likes }, { data: bookmarks }] = await Promise.all([
-    asQuery(
-      supabase
-        .from("profiles")
-        .select("id, username, full_name, avatar_url, bio, membership_tier")
-    ).in("id", creatorIds),
-    asQuery(supabase.from("likes").select("user_id, outfit_id")).in(
-      "outfit_id",
-      outfitIds
-    ),
-    userId
-      ? asQuery(supabase.from("bookmarks").select("outfit_id"))
-          .eq("user_id", userId)
-          .in("outfit_id", outfitIds)
-      : Promise.resolve({ data: [], error: null })
-  ]);
+  const [{ data: profiles }, { data: likes }, { data: bookmarks }, { data: commentRows }] =
+    await Promise.all([
+      asQuery(
+        supabase
+          .from("profiles")
+          .select("id, username, full_name, avatar_url, bio, membership_tier")
+      ).in("id", creatorIds),
+      asQuery(supabase.from("likes").select("user_id, outfit_id")).in(
+        "outfit_id",
+        outfitIds
+      ),
+      userId
+        ? asQuery(supabase.from("bookmarks").select("outfit_id"))
+            .eq("user_id", userId)
+            .in("outfit_id", outfitIds)
+        : Promise.resolve({ data: [], error: null }),
+      asQuery(supabase.from("comments").select("outfit_id")).in(
+        "outfit_id",
+        outfitIds
+      )
+    ]);
 
   const profilesWithStats = await attachProfileStats(
     supabase,
@@ -412,11 +417,16 @@ async function attachSocialData(
   const bookmarkedIds = new Set(
     ((bookmarks ?? []) as { outfit_id: string }[]).map((bookmark) => bookmark.outfit_id)
   );
+  const commentCounts = countBy(
+    (commentRows ?? []) as { outfit_id: string }[],
+    "outfit_id"
+  );
 
   return outfits.map((outfit) => ({
     ...outfit,
     creator: profileById.get(outfit.user_id) ?? null,
     like_count: likeCounts.get(outfit.id) ?? 0,
+    comment_count: commentCounts.get(outfit.id) ?? 0,
     is_liked: likedIds.has(outfit.id),
     is_bookmarked: bookmarkedIds.has(outfit.id)
   }));

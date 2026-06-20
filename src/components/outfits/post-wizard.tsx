@@ -22,6 +22,7 @@ export function PostWizard({ outfit, onClose, onPosted }: PostWizardProps) {
   const [title, setTitle] = useState(outfit.title);
   const [description, setDescription] = useState(outfit.description);
   const [allowSaves, setAllowSaves] = useState(true);
+  const [allowComments, setAllowComments] = useState(true);
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export function PostWizard({ outfit, onClose, onPosted }: PostWizardProps) {
       const res = await fetch(`/api/outfits/${outfit.id}/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, allowSaves, visibility })
+        body: JSON.stringify({ title, description, allowSaves, allowComments, visibility })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not post outfit.");
@@ -138,6 +139,21 @@ export function PostWizard({ outfit, onClose, onPosted }: PostWizardProps) {
                     type="checkbox"
                     checked={allowSaves}
                     onChange={(e) => setAllowSaves(e.target.checked)}
+                  />
+                  <span aria-hidden="true" />
+                </label>
+              </div>
+
+              <div className="wizard-toggle-row">
+                <div className="wizard-toggle-text">
+                  <strong>Allow comments</strong>
+                  <p>Let others leave comments on this look.</p>
+                </div>
+                <label className="wizard-toggle">
+                  <input
+                    type="checkbox"
+                    checked={allowComments}
+                    onChange={(e) => setAllowComments(e.target.checked)}
                   />
                   <span aria-hidden="true" />
                 </label>

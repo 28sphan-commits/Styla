@@ -82,6 +82,7 @@ export type SavedOutfit = {
   piece_count: number;
   is_public: boolean;
   allow_saves: boolean;
+  allow_comments: boolean;
   visibility: "public" | "friends";
   share_slug: string;
   created_at: string;

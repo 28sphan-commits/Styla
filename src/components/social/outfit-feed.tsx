@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bookmark, Check, Copy, Heart, Shirt, Sparkles } from "lucide-react";
+import { Bookmark, Check, Copy, Heart, MessageCircle, Shirt, Sparkles } from "lucide-react";
 import {
   moodLabels,
   occasionLabels,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/outfits/schema";
 import type { PublicOutfit } from "@/lib/social/schema";
 import { ClientDate } from "@/components/client-date";
+import { CommentDrawer } from "@/components/social/comment-drawer";
 
 type OutfitFeedProps = {
   outfits: PublicOutfit[];
@@ -26,6 +27,7 @@ export function OutfitFeed({
 }: OutfitFeedProps) {
   const [items, setItems] = useState(outfits);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [commentOutfit, setCommentOutfit] = useState<PublicOutfit | null>(null);
 
   async function toggleOutfit(outfitId: string, action: "like" | "bookmark") {
     if (!canInteract) return;
@@ -95,7 +97,19 @@ export function OutfitFeed({
     );
   }
 
+  function handleCountChange(outfitId: string, delta: number) {
+    setItems((current) =>
+      current.map((o) =>
+        o.id === outfitId ? { ...o, comment_count: Math.max(0, o.comment_count + delta) } : o
+      )
+    );
+    if (commentOutfit?.id === outfitId) {
+      setCommentOutfit((c) => c ? { ...c, comment_count: Math.max(0, c.comment_count + delta) } : c);
+    }
+  }
+
   return (
+    <>
     <div className="social-feed-grid">
       {items.map((outfit) => (
         <article className="social-outfit-card" key={outfit.id}>
@@ -147,6 +161,16 @@ export function OutfitFeed({
               <Heart size={14} aria-hidden="true" />
               {Math.max(0, outfit.like_count)}
             </button>
+            {outfit.allow_comments !== false && (
+              <button
+                type="button"
+                className="social-icon-button"
+                onClick={() => setCommentOutfit(outfit)}
+              >
+                <MessageCircle size={14} aria-hidden="true" />
+                {outfit.comment_count > 0 ? outfit.comment_count : "Comment"}
+              </button>
+            )}
             {outfit.allow_saves !== false && (
               <button
                 type="button"
@@ -174,5 +198,14 @@ export function OutfitFeed({
         </article>
       ))}
     </div>
+
+    {commentOutfit && (
+      <CommentDrawer
+        outfit={commentOutfit}
+        onClose={() => setCommentOutfit(null)}
+        onCountChange={handleCountChange}
+      />
+    )}
+    </>
   );
 }

@@ -90,7 +90,7 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
       const formData = new FormData();
       formData.append("image", cleanedFile);
 
-      setStatus("Asking Gemini to categorize this piece...");
+      setStatus("Categorizing this piece...");
       const response = await fetch("/api/ai/categorize-item", {
         method: "POST",
         body: formData

@@ -4432,3 +4432,312 @@ select:focus-visible {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ── Comment Bottom Sheet ─────────────────────────────────────────────────── */
+.comment-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(23, 26, 20, 0.5);
+  backdrop-filter: blur(3px);
+  animation: comment-fade 200ms ease forwards;
+}
+
+@keyframes comment-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* The sheet itself — fixed height so the input is ALWAYS visible */
+.comment-sheet {
+  width: 100%;
+  height: 68vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper-strong);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -12px 48px rgba(23, 26, 20, 0.14);
+  animation: comment-sheet-up 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  overflow: hidden;
+}
+
+@keyframes comment-sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Drag handle pill */
+.comment-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+/* Header row */
+.comment-sheet-head {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.comment-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green);
+}
+
+.comment-sheet-title h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.comment-sheet-title span {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.comment-sheet-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.comment-sheet-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 140ms, border-color 140ms;
+}
+
+.comment-sheet-close:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* Scrollable list — takes all remaining space between header and input */
+.comment-list {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 10px 16px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Loading dots */
+.comment-state {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.comment-state-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line);
+  animation: comment-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.comment-state-dot:nth-child(2) { animation-delay: 0.2s; }
+.comment-state-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes comment-dot-pulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); }
+  40%            { opacity: 1;   transform: scale(1.15); }
+}
+
+/* Empty state */
+.comment-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.comment-empty-state strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.comment-empty-state p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Comment rows */
+.comment-item {
+  display: flex;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  transition: background 120ms;
+}
+
+.comment-item:hover {
+  background: var(--green-soft);
+}
+
+.comment-avatar-img,
+.comment-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.comment-avatar {
+  display: grid;
+  place-items: center;
+  background: var(--soft);
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* Bubble */
+.comment-bubble {
+  flex: 1;
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0 12px 12px 12px;
+  padding: 8px 12px;
+}
+
+.comment-bubble-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.comment-bubble-head strong {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.comment-bubble-head time {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.comment-bubble p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Compose row — pinned to the bottom, never scrolls away */
+.comment-compose {
+  flex-shrink: 0;
+  padding: 10px 16px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--paper-strong);
+}
+
+.comment-compose-error {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+.comment-compose-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.comment-compose-input {
+  flex: 1;
+  padding: 10px 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  overflow: hidden;
+  transition: border-color 150ms;
+  line-height: 1.45;
+  min-height: 40px;
+  max-height: 80px;
+}
+
+.comment-compose-input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+.comment-compose-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 180ms, color 180ms, transform 120ms;
+}
+
+.comment-compose-btn.is-ready {
+  background: var(--green);
+  color: white;
+}
+
+.comment-compose-btn.is-ready:hover {
+  transform: scale(1.08);
+}
+
+.comment-compose-btn:disabled {
+  cursor: not-allowed;
+}
