@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, Loader2, Save, Sparkles, Wand2 } from "lucide-react";
+import { ArrowUp, Check, Loader2, Save, Sparkles } from "lucide-react";
 import {
   moodLabels,
   occasionLabels,
@@ -25,11 +25,6 @@ const defaultContext: OutfitInput = {
   weather: "mild"
 };
 
-const occasionKeywords = [
-  ...outfitOccasions,
-  ...Object.values(occasionLabels).map((label) => label.toLowerCase())
-];
-
 export function OutfitGenerator({ wardrobeItems }: OutfitGeneratorProps) {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<GenerateChatMessage[]>([]);
@@ -49,14 +44,7 @@ export function OutfitGenerator({ wardrobeItems }: OutfitGeneratorProps) {
     [wardrobeItems.length]
   );
 
-  const baselineText = `${draft} ${messages.map((message) => message.content).join(" ")}`.toLowerCase();
-  const hasOccasionKeyword = occasionKeywords.some((keyword) => baselineText.includes(keyword));
   const hasContent = draft.trim().length > 0 || messages.length > 0;
-  const hasBaseline =
-    hasContent &&
-    (hasOccasionKeyword ||
-      draft.trim().length >= 6 ||
-      messages.some((message) => message.role === "user"));
 
   // The pills are shortcuts only: they inject category-scoped tags into the
   // prompt (e.g. #Weather:Hot) so the context stays unambiguous for the stylist.
@@ -278,16 +266,6 @@ export function OutfitGenerator({ wardrobeItems }: OutfitGeneratorProps) {
             <Sparkles size={15} aria-hidden="true" />
           )}
           {isGenerating ? "Generating…" : looks.length ? "Regenerate" : "Generate Outfits"}
-        </button>
-        <button
-          className="generate-skip"
-          type="button"
-          disabled={!canGenerate || busy || !hasBaseline}
-          onClick={() => void runGenerate(true)}
-          title="Generate now and let Styla fill in the missing details"
-        >
-          <Wand2 size={14} aria-hidden="true" />
-          Skip Chat &amp; Generate
         </button>
       </div>
 
