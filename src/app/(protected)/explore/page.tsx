@@ -1,41 +1,29 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Camera, MessageCircle, Search, Shirt, Sparkles, Wand2 } from "lucide-react";
+import {
+  ArrowRight,
+  Camera,
+  MessageCircle,
+  Shirt,
+  Sparkles,
+  Wand2
+} from "lucide-react";
 import { OutfitFeed } from "@/components/social/outfit-feed";
 import { ProfileGrid } from "@/components/social/profile-grid";
+import { FriendsStat } from "@/components/social/friends-stat";
 import {
+  loadMutualFriends,
   loadPublicOutfits,
-  loadPublicProfiles,
   loadRecommendedProfiles
 } from "@/lib/outfits/loaders";
-import {
-  moodLabels,
-  occasionLabels,
-  outfitMoods,
-  outfitOccasions
-} from "@/lib/outfits/schema";
-import type { ExploreFilter } from "@/lib/social/schema";
 import { createClient } from "@/lib/supabase/server";
 
-type ExplorePageProps = {
-  searchParams: Promise<{
-    feed?: string;
-    occasion?: string;
-    mood?: string;
-    q?: string;
-  }>;
-};
+// The main Explore page is a curated landing view: a few featured looks plus
+// recommended stylists. The full, filterable, searchable feed lives at
+// /explore/browse.
+const FEATURED_LIMIT = 3;
 
-function filterHref(filter: Record<string, string | undefined>) {
-  const params = new URLSearchParams();
-  Object.entries(filter).forEach(([key, value]) => {
-    if (value) params.set(key, value);
-  });
-  const query = params.toString();
-  return query ? `/explore?${query}` : "/explore";
-}
-
-export default async function ExplorePage({ searchParams }: ExplorePageProps) {
+export default async function ExplorePage() {
   const supabase = await createClient();
 
   if (!supabase) {
@@ -71,40 +59,11 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     supabase.from("outfits").select("id").eq("user_id", user.id)
   ]);
 
-  const params = await searchParams;
-  const query = params.q?.trim() ?? "";
-  const filter: ExploreFilter = {
-    feed: params.feed === "following" ? "following" : "all",
-    occasion: outfitOccasions.includes(params.occasion as never)
-      ? params.occasion
-      : undefined,
-    mood: outfitMoods.includes(params.mood as never) ? params.mood : undefined
-  };
-
-  const [allOutfits, profiles] = await Promise.all([
-    loadPublicOutfits(supabase, user.id, filter, query ? 48 : 18),
-    query
-      ? loadPublicProfiles(supabase, user.id, query, 18)
-      : loadRecommendedProfiles(supabase, user.id, 6)
+  const [outfits, profiles, friends] = await Promise.all([
+    loadPublicOutfits(supabase, user.id, { feed: "all" }, FEATURED_LIMIT),
+    loadRecommendedProfiles(supabase, user.id, 6),
+    loadMutualFriends(supabase, user.id)
   ]);
-
-  const normalizedQuery = query.toLowerCase();
-  const outfits = normalizedQuery
-    ? allOutfits.filter((outfit) =>
-        [
-          outfit.title,
-          outfit.description,
-          outfit.occasion,
-          outfit.mood,
-          outfit.weather,
-          outfit.creator?.username ?? "",
-          outfit.creator?.full_name ?? ""
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery)
-      )
-    : allOutfits;
 
   const firstName =
     profile?.full_name?.split(" ").filter(Boolean)[0] ??
@@ -158,10 +117,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             <strong>{outfitRows?.length ?? 0}</strong>
             Looks
           </span>
-          <span>
-            <strong>{profiles.length}</strong>
-            People
-          </span>
+          <FriendsStat friends={friends} />
         </div>
       </div>
 
@@ -171,101 +127,39 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
         <div className="social-section-heading">
           <div>
             <div className="section-kicker">Public Feed</div>
-            <h2>{query ? `Looks matching "${query}"` : "Explore Looks"}</h2>
+            <h2>Explore Looks</h2>
           </div>
-        </div>
-
-        <div className="social-filter-bar">
-          {/* All: active only when nothing is selected; always clears all filters */}
-          <Link
-            className={
-              filter.feed !== "following" && !filter.occasion && !filter.mood
-                ? "is-active"
-                : undefined
-            }
-            href="/explore"
-          >
-            All
-          </Link>
-          {/* Following: toggles the feed param; preserves any active category filter */}
-          <Link
-            className={filter.feed === "following" ? "is-active" : undefined}
-            href={filterHref(
-              filter.feed === "following"
-                ? { occasion: filter.occasion, mood: filter.mood }
-                : { feed: "following", occasion: filter.occasion, mood: filter.mood }
-            )}
-          >
-            Following
-          </Link>
-          {/* Occasion pills: single-selection (clears mood); clicking active pill toggles off */}
-          {outfitOccasions.slice(0, 4).map((occasion) => (
-            <Link
-              key={occasion}
-              className={filter.occasion === occasion ? "is-active" : undefined}
-              href={filterHref({
-                feed: filter.feed === "following" ? "following" : undefined,
-                occasion: filter.occasion === occasion ? undefined : occasion
-              })}
-            >
-              {occasionLabels[occasion]}
-            </Link>
-          ))}
-          {/* Mood pills: single-selection (clears occasion); clicking active pill toggles off */}
-          {outfitMoods.slice(0, 4).map((mood) => (
-            <Link
-              key={mood}
-              className={filter.mood === mood ? "is-active" : undefined}
-              href={filterHref({
-                feed: filter.feed === "following" ? "following" : undefined,
-                mood: filter.mood === mood ? undefined : mood
-              })}
-            >
-              {moodLabels[mood]}
-            </Link>
-          ))}
         </div>
 
         <OutfitFeed
           outfits={outfits}
-          emptyTitle={
-            filter.feed === "following" ? "Your following feed is quiet" : "No public looks yet"
-          }
-          emptyText={
-            filter.feed === "following"
-              ? "Follow people from Search to fill this feed."
-              : "Share one of your saved outfits to start the public feed."
-          }
+          emptyTitle="No public looks yet"
+          emptyText="Share one of your saved outfits to start the public feed."
         />
+
+        <div className="explore-more-row">
+          <Link className="explore-more-button" href="/explore/browse">
+            Explore More
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
       </section>
 
       <section className="social-section">
         <div className="social-section-heading">
           <div>
             <div className="section-kicker">People</div>
-            <h2>{query ? `Results for "${query}"` : "Stylists to Follow"}</h2>
+            <h2>Stylists to Follow</h2>
           </div>
           <Sparkles size={18} aria-hidden="true" />
         </div>
-        <form className="search-form" action="/explore">
-          <Search size={15} aria-hidden="true" />
-          <input
-            name="q"
-            defaultValue={query}
-            placeholder="Search people, casual looks, date outfits..."
-          />
-          {filter.feed === "following" ? (
-            <input type="hidden" name="feed" value="following" />
-          ) : null}
-          {filter.occasion ? (
-            <input type="hidden" name="occasion" value={filter.occasion} />
-          ) : null}
-          {filter.mood ? (
-            <input type="hidden" name="mood" value={filter.mood} />
-          ) : null}
-          <button type="submit">Search</button>
-        </form>
         <ProfileGrid profiles={profiles} currentUserId={user.id} />
+        <div className="explore-more-row">
+          <Link className="explore-more-button" href="/explore/stylists">
+            Discover Stylists
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
       </section>
     </section>
   );

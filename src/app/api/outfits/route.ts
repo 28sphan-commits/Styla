@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { outfitInputSchema } from "@/lib/outfits/schema";
+import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
 
 const saveOutfitSchema = outfitInputSchema.extend({
@@ -36,6 +37,19 @@ export async function POST(request: Request) {
     );
   }
 
+  // Censor mild language in the user-authored title/description; severe blocks + strikes.
+  const moderation = await enforceModeration(supabase, [
+    { value: parsed.data.title },
+    { value: parsed.data.description }
+  ]);
+  if (!moderation.ok) {
+    return NextResponse.json(
+      { error: moderation.error, banned: moderation.banned },
+      { status: moderation.status }
+    );
+  }
+  const [cleanTitle, cleanDescription] = moderation.values;
+
   const { data: ownedItems, error: ownedItemsError } = await supabase
     .from("wardrobe_items")
     .select("id")
@@ -60,8 +74,8 @@ export async function POST(request: Request) {
       occasion: parsed.data.occasion,
       mood: parsed.data.mood,
       weather: parsed.data.weather,
-      title: parsed.data.title,
-      description: parsed.data.description,
+      title: cleanTitle,
+      description: cleanDescription,
       piece_count: parsed.data.itemIds.length
     })
     .select("*")

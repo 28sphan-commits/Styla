@@ -24,9 +24,16 @@ export default async function ProtectedLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, email")
+    .select("username, email, status")
     .eq("id", user.id)
     .maybeSingle();
+
+  // Banned users are locked out of every protected page and sent to the
+  // suspension screen. (API mutations are gated separately via the moderation
+  // helper, since we can't revoke the Supabase JWT without a service-role key.)
+  if (profile?.status === "banned") {
+    redirect("/banned");
+  }
 
   return (
     <div className="app-frame">

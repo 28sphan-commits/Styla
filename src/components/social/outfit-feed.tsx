@@ -147,15 +147,17 @@ export function OutfitFeed({
               <Heart size={14} aria-hidden="true" />
               {Math.max(0, outfit.like_count)}
             </button>
-            <button
-              type="button"
-              className={outfit.is_bookmarked ? "social-icon-button is-active" : "social-icon-button"}
-              disabled={!canInteract}
-              onClick={() => void toggleOutfit(outfit.id, "bookmark")}
-            >
-              <Bookmark size={14} aria-hidden="true" />
-              Save
-            </button>
+            {outfit.allow_saves !== false && (
+              <button
+                type="button"
+                className={outfit.is_bookmarked ? "social-icon-button is-active" : "social-icon-button"}
+                disabled={!canInteract}
+                onClick={() => void toggleOutfit(outfit.id, "bookmark")}
+              >
+                <Bookmark size={14} aria-hidden="true" />
+                Save
+              </button>
+            )}
             <button
               type="button"
               className="social-icon-button"

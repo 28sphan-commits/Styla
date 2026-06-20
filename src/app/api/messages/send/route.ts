@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
 
 const sendMessageSchema = z
@@ -37,6 +38,16 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  // Censor mild language in the DM body; severe content blocks + strikes.
+  const moderation = await enforceModeration(supabase, [{ value: parsed.data.body }]);
+  if (!moderation.ok) {
+    return NextResponse.json(
+      { error: moderation.error, banned: moderation.banned },
+      { status: moderation.status }
+    );
+  }
+  const cleanBody = moderation.values[0];
 
   const { data: conversation } = await supabase
     .from("dm_conversations")
@@ -76,7 +87,7 @@ export async function POST(request: Request) {
     .insert({
       conversation_id: parsed.data.conversationId,
       sender_id: user.id,
-      body: parsed.data.body,
+      body: cleanBody,
       outfit_id: parsed.data.outfitId ?? null
     })
     .select("*")

@@ -6,7 +6,8 @@ import type {
 import type {
   ExploreFilter,
   PublicOutfit,
-  PublicProfile
+  PublicProfile,
+  StylistProfile
 } from "@/lib/social/schema";
 import type { WardrobeItem } from "@/lib/wardrobe/schema";
 
@@ -273,6 +274,91 @@ export async function loadPublicOutfitsForProfile(
   const outfits = mapOutfitItems((outfitRows ?? []) as OutfitRowWithItems[]);
 
   return attachSocialData(supabase, currentUserId, outfits);
+}
+
+// Mutual friends = people the user follows who also follow the user back.
+// Both directions are readable under the follows RLS policy (the user is a party
+// to each row), and since you can only follow public profiles, every mutual
+// friend's profile row is readable too.
+export async function loadMutualFriends(
+  supabase: SupabaseLike,
+  userId: string
+): Promise<PublicProfile[]> {
+  const [{ data: following }, { data: followers }] = await Promise.all([
+    asQuery(supabase.from("follows").select("following_id")).eq("follower_id", userId),
+    asQuery(supabase.from("follows").select("follower_id")).eq("following_id", userId)
+  ]);
+
+  const followingIds = new Set(
+    ((following ?? []) as { following_id: string }[]).map((row) => row.following_id)
+  );
+  const mutualIds = Array.from(
+    new Set(
+      ((followers ?? []) as { follower_id: string }[])
+        .map((row) => row.follower_id)
+        .filter((id) => followingIds.has(id))
+    )
+  );
+
+  if (!mutualIds.length) {
+    return [];
+  }
+
+  const { data: profiles } = await asQuery(
+    supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url, bio, membership_tier")
+  ).in("id", mutualIds);
+
+  return attachProfileStats(
+    supabase,
+    userId,
+    ((profiles ?? []) as PublicProfile[]).filter((profile) => profile.username)
+  );
+}
+
+// Loads all public profiles plus their style_dna aesthetic + notes for
+// the stylist discovery page. The style_dna join runs in parallel with the
+// profile stats query so there is no extra serial round-trip.
+export async function loadStylistProfiles(
+  supabase: SupabaseLike,
+  currentUserId: string,
+  limit = 96
+): Promise<StylistProfile[]> {
+  const { data: profileRows } = await asQuery(
+    supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url, bio, membership_tier")
+  )
+    .eq("is_public", true)
+    .neq("id", currentUserId)
+    .limit(limit);
+
+  const profiles = ((profileRows ?? []) as PublicProfile[]).filter(
+    (profile) => profile.username
+  );
+
+  if (!profiles.length) return [];
+
+  const profileIds = profiles.map((p) => p.id);
+
+  const [profilesWithStats, { data: dnaRows }] = await Promise.all([
+    attachProfileStats(supabase, currentUserId, profiles),
+    asQuery(
+      supabase.from("style_dna").select("user_id, style_aesthetic, style_notes")
+    ).in("user_id", profileIds)
+  ]);
+
+  type DnaRow = { user_id: string; style_aesthetic: string; style_notes: string | null };
+  const dnaMap = new Map(
+    ((dnaRows ?? []) as DnaRow[]).map((row) => [row.user_id, row])
+  );
+
+  return profilesWithStats.map((profile) => ({
+    ...profile,
+    style_aesthetic: dnaMap.get(profile.id)?.style_aesthetic ?? null,
+    style_notes: dnaMap.get(profile.id)?.style_notes ?? null
+  }));
 }
 
 export async function loadFollowingIds(supabase: SupabaseLike, userId: string) {

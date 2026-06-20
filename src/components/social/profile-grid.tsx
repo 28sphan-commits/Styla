@@ -6,15 +6,22 @@ import { FollowButton } from "@/components/social/follow-button";
 type ProfileGridProps = {
   profiles: PublicProfile[];
   currentUserId: string;
+  emptyTitle?: string;
+  emptyText?: string;
 };
 
-export function ProfileGrid({ profiles, currentUserId }: ProfileGridProps) {
+export function ProfileGrid({
+  profiles,
+  currentUserId,
+  emptyTitle = "No profiles found",
+  emptyText = "Try a different search or explore the public outfit feed."
+}: ProfileGridProps) {
   if (!profiles.length) {
     return (
       <div className="empty-wardrobe social-empty">
         <Users size={18} aria-hidden="true" />
-        <strong>No profiles found</strong>
-        <span>Try a different search or explore the public outfit feed.</span>
+        <strong>{emptyTitle}</strong>
+        <span>{emptyText}</span>
       </div>
     );
   }

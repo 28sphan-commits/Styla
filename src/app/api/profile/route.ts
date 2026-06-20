@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { profileUpdateSchema } from "@/lib/profile/schema";
+import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
 
 function formBoolean(value: FormDataEntryValue | null) {
@@ -45,6 +46,20 @@ export async function POST(request: Request) {
     );
   }
 
+  // Moderate username (block any profanity — can't mask an identifier) and bio
+  // (mild language is censored, severe blocks + strikes).
+  const moderation = await enforceModeration(supabase, [
+    { value: parsed.data.username ?? "", block: true },
+    { value: parsed.data.bio }
+  ]);
+  if (!moderation.ok) {
+    return NextResponse.json(
+      { error: moderation.error, banned: moderation.banned },
+      { status: moderation.status }
+    );
+  }
+  const [, cleanBio] = moderation.values;
+
   let avatarUrl: string | null = null;
   const avatar = formData.get("avatar");
 
@@ -86,7 +101,7 @@ export async function POST(request: Request) {
     id: user.id,
     email: user.email,
     username: parsed.data.username,
-    bio: parsed.data.bio,
+    bio: cleanBio,
     membership_tier: parsed.data.membership_tier,
     is_public: parsed.data.is_public,
     show_outfits: parsed.data.show_outfits,

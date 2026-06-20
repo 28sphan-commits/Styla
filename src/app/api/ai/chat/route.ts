@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { STYLE_EVOLUTION_RULE } from "@/lib/ai/style-context";
 import { chatRequestSchema, type ChatMessage } from "@/lib/chat/schema";
 import { createClient } from "@/lib/supabase/server";
 import type { WardrobeItem } from "@/lib/wardrobe/schema";
@@ -65,6 +66,7 @@ async function askGemini({
             {
               text:
                 "You are Styla, a practical AI fashion advisor. Answer conversationally and specifically using the user's actual wardrobe whenever relevant. " +
+                STYLE_EVOLUTION_RULE +
                 "Every request is stateless, so use all context below. If the user asks what to wear, suggest real item names from wardrobeItems. " +
                 "If the wardrobe is missing something, say what is missing and how to work around it. Keep answers concise but useful. " +
                 "Do not claim to see images unless they are described in the wardrobe metadata. Do not invent owned clothing.\n\n" +

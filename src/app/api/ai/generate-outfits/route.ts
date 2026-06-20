@@ -7,6 +7,7 @@ import {
   type GeneratedLook,
   type OutfitInput
 } from "@/lib/outfits/schema";
+import { STYLE_EVOLUTION_RULE } from "@/lib/ai/style-context";
 import { createClient } from "@/lib/supabase/server";
 import type { WardrobeItem } from "@/lib/wardrobe/schema";
 
@@ -165,6 +166,7 @@ const TAG_NOTATION =
 
 const CHAT_SYSTEM =
   "You are Styla, a warm, sharp AI fashion stylist helping the user shape ONE outfit request through quick conversation. " +
+  STYLE_EVOLUTION_RULE +
   TAG_NOTATION +
   "Reply in 1-3 short sentences: ask a single focused clarifying question about something NOT already provided, OR offer a concrete suggestion to refine details such as color palette, layers, or formality. " +
   "Reference their real wardrobe items and Style DNA where useful. Do not output JSON and do not produce a full outfit yet — just help them refine the request.";
@@ -172,6 +174,7 @@ const CHAT_SYSTEM =
 function generateSystem(fillGaps: boolean) {
   return (
     "You are Styla, a personal AI fashion advisor. Using ONLY the user's wardrobe item ids, generate exactly three complete outfits that satisfy the request in the conversation below. " +
+    STYLE_EVOLUTION_RULE +
     "Every response is stateless; use the full context. Never invent wardrobe items. If the wardrobe is sparse, reuse pieces creatively and explain what would improve the look. " +
     TAG_NOTATION +
     (fillGaps

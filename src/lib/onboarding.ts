@@ -104,59 +104,78 @@ export type ChoiceStep = {
   options: readonly ChoiceOption[];
 };
 
+// Free-text onboarding fields. These live outside styleDnaSchema (no fixed enum)
+// and are saved/moderated individually by the onboarding action.
+export const freewriteKeys = ["gender", "style_notes"] as const;
+export type FreewriteKey = (typeof freewriteKeys)[number];
+
 export type FreetextStep = {
   type: "freewrite";
-  key: "style_notes";
+  key: FreewriteKey;
   eyebrow: string;
   question: string;
   placeholder: string;
+  maxLength: number;
+  hint: string;
 };
 
 export type OnboardingStep = ChoiceStep | FreetextStep;
 
 export const onboardingSteps: readonly OnboardingStep[] = [
   {
+    type: "freewrite",
+    key: "gender",
+    eyebrow: "Style Discovery - Chapter 01",
+    question: "How do you identify?",
+    placeholder:
+      "E.g. woman, man, non-binary — or however you describe yourself. This helps us tailor fits and silhouettes.",
+    maxLength: 80,
+    hint: "Optional — helps us tailor fits. You can change this anytime."
+  },
+  {
     type: "choice",
     key: "style_aesthetic",
-    eyebrow: "Style Discovery - Chapter 01",
+    eyebrow: "Style Discovery - Chapter 02",
     question: "What's your style aesthetic?",
     options: styleAestheticOptions
   },
   {
     type: "choice",
     key: "body_type",
-    eyebrow: "Style Discovery - Chapter 02",
+    eyebrow: "Style Discovery - Chapter 03",
     question: "How would you describe your body type?",
     options: bodyTypeOptions
   },
   {
     type: "choice",
     key: "lifestyle",
-    eyebrow: "Style Discovery - Chapter 03",
+    eyebrow: "Style Discovery - Chapter 04",
     question: "What best describes your lifestyle?",
     options: lifestyleOptions
   },
   {
     type: "choice",
     key: "budget_per_item",
-    eyebrow: "Style Discovery - Chapter 04",
+    eyebrow: "Style Discovery - Chapter 05",
     question: "What's your typical budget per item?",
     options: budgetOptions
   },
   {
     type: "choice",
     key: "color_preference",
-    eyebrow: "Style Discovery - Chapter 05",
+    eyebrow: "Style Discovery - Chapter 06",
     question: "Which colors do you gravitate toward?",
     options: colorPreferenceOptions
   },
   {
     type: "freewrite",
     key: "style_notes",
-    eyebrow: "Style Discovery - Chapter 06",
+    eyebrow: "Style Discovery - Chapter 07",
     question: "Tell us about your style in your own words.",
     placeholder:
-      "Describe your current style situation — what you love wearing, what you struggle to pull off, specific pieces you want to build around, or any look you're chasing..."
+      "Describe your current style situation — what you love wearing, what you struggle to pull off, specific pieces you want to build around, or any look you're chasing...",
+    maxLength: 1200,
+    hint: "Optional — you can skip this and come back later."
   }
 ] as const;
 

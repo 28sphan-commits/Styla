@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { hasProfanity } from "@/lib/moderation/filter";
 import { destinationForUser } from "@/lib/supabase/post-auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -116,6 +117,12 @@ export async function signUpWithEmail(
 
   const { email, username, password } = parsed.data;
   const providedEmail = email.length > 0 ? email : null;
+
+  // Block profane usernames at signup. No strike here — there's no account (and
+  // no auth session) yet, so we simply reject and ask for a different handle.
+  if (hasProfanity(username)) {
+    return { error: "Please choose a different username." };
+  }
 
   // Reject taken usernames up front so we never create an account that then
   // silently falls back to an auto-generated handle.

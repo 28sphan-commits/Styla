@@ -2,26 +2,34 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { onboardingSteps, type ChoiceStep, type StyleDna } from "@/lib/onboarding";
+import {
+  onboardingSteps,
+  type ChoiceStep,
+  type FreetextStep,
+  type FreewriteKey,
+  type StyleDna
+} from "@/lib/onboarding";
 
 type OnboardingFlowProps = {
   action: (formData: FormData) => void | Promise<void>;
   initialValues?: Partial<StyleDna>;
-  initialStyleNotes?: string;
+  initialFreewrite?: Partial<Record<FreewriteKey, string>>;
 };
 
 type AnswerKey = keyof StyleDna;
 
 const emptyAnswers: Partial<StyleDna> = {};
+const emptyFreewrite: Partial<Record<FreewriteKey, string>> = {};
 
 export function OnboardingFlow({
   action,
   initialValues = emptyAnswers,
-  initialStyleNotes = ""
+  initialFreewrite = emptyFreewrite
 }: OnboardingFlowProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Partial<StyleDna>>(initialValues);
-  const [styleNotes, setStyleNotes] = useState(initialStyleNotes);
+  const [freewrite, setFreewrite] =
+    useState<Partial<Record<FreewriteKey, string>>>(initialFreewrite);
   const [isPending, startTransition] = useTransition();
 
   const currentStep = onboardingSteps[stepIndex];
@@ -29,12 +37,13 @@ export function OnboardingFlow({
   const selectedValue = isChoiceStep
     ? answers[currentStep.key as AnswerKey]
     : undefined;
+  // Choice steps require a selection; freewrite steps are always skippable.
   const canContinue = isChoiceStep ? Boolean(selectedValue) : true;
   const progress = Math.round(((stepIndex + 1) / onboardingSteps.length) * 100);
   const isLastStep = stepIndex === onboardingSteps.length - 1;
 
-  // Hidden inputs only cover the 5 choice steps — style_notes is the live textarea.
-  const hiddenFields = useMemo(
+  // Hidden inputs cover the choice steps so each selection submits with the form.
+  const hiddenChoiceFields = useMemo(
     () =>
       onboardingSteps
         .filter((step): step is ChoiceStep => step.type === "choice")
@@ -45,8 +54,22 @@ export function OnboardingFlow({
     [answers]
   );
 
+  // Every freewrite step also submits via its own hidden input, so any field is
+  // saved no matter which step triggers the final submit.
+  const freewriteSteps = useMemo(
+    () =>
+      onboardingSteps.filter(
+        (step): step is FreetextStep => step.type === "freewrite"
+      ),
+    []
+  );
+
   function chooseAnswer(key: AnswerKey, value: string) {
     setAnswers((current) => ({ ...current, [key]: value }));
+  }
+
+  function setFreewriteValue(key: FreewriteKey, value: string) {
+    setFreewrite((current) => ({ ...current, [key]: value }));
   }
 
   function submit(formData: FormData) {
@@ -55,13 +78,22 @@ export function OnboardingFlow({
     });
   }
 
+  const currentFreewriteValue =
+    currentStep.type === "freewrite" ? freewrite[currentStep.key] ?? "" : "";
+
   return (
     <form className="onboarding-form" action={submit}>
-      {hiddenFields.map((field) => (
+      {hiddenChoiceFields.map((field) => (
         <input key={field.key} type="hidden" name={field.key} value={field.value} />
       ))}
-      {/* style_notes is always included so the action can save it on any submit */}
-      <input type="hidden" name="style_notes" value={styleNotes} />
+      {freewriteSteps.map((step) => (
+        <input
+          key={step.key}
+          type="hidden"
+          name={step.key}
+          value={freewrite[step.key] ?? ""}
+        />
+      ))}
 
       <div className="onboarding-brand">Styla</div>
       <p className="onboarding-chapter">{currentStep.eyebrow}</p>
@@ -78,9 +110,9 @@ export function OnboardingFlow({
 
       <h1>{currentStep.question}</h1>
 
-      {isChoiceStep ? (
+      {currentStep.type === "choice" ? (
         <div className="option-grid">
-          {(currentStep as ChoiceStep).options.map((option) => (
+          {currentStep.options.map((option) => (
             <button
               className={
                 option.value === selectedValue ? "choice-card is-selected" : "choice-card"
@@ -101,12 +133,14 @@ export function OnboardingFlow({
       ) : (
         <div className="freewrite-field">
           <textarea
-            placeholder={currentStep.type === "freewrite" ? currentStep.placeholder : ""}
-            maxLength={1200}
-            value={styleNotes}
-            onChange={(e) => setStyleNotes(e.target.value)}
+            placeholder={currentStep.placeholder}
+            maxLength={currentStep.maxLength}
+            value={currentFreewriteValue}
+            onChange={(e) => setFreewriteValue(currentStep.key, e.target.value)}
           />
-          <small>{styleNotes.length}/1200 · Optional — you can skip this and come back later</small>
+          <small>
+            {currentFreewriteValue.length}/{currentStep.maxLength} · {currentStep.hint}
+          </small>
         </div>
       )}
 

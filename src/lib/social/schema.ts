@@ -18,6 +18,12 @@ export type PublicOutfit = OutfitLibraryItem & {
   is_bookmarked: boolean;
 };
 
+// Extends PublicProfile with onboarding survey fields used by stylist discovery.
+export type StylistProfile = PublicProfile & {
+  style_aesthetic: string | null;
+  style_notes: string | null;
+};
+
 export type ExploreFilter = {
   feed?: "all" | "following";
   occasion?: string;

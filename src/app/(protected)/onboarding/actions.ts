@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { styleDnaSchema } from "@/lib/onboarding";
+import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
 
 export async function saveOnboarding(formData: FormData) {
@@ -43,12 +44,25 @@ export async function saveOnboarding(formData: FormData) {
     updated_at: new Date().toISOString()
   });
 
-  const styleNotes = (formData.get("style_notes") as string | null)?.trim() ?? null;
+  const gender = (formData.get("gender") as string | null)?.trim() ?? "";
+  const styleNotes = (formData.get("style_notes") as string | null)?.trim() ?? "";
+
+  // Censor mild language in the freewrite fields; severe content blocks + strikes
+  // (and may ban, in which case the layout/banned route takes over).
+  const moderation = await enforceModeration(supabase, [
+    { value: gender },
+    { value: styleNotes }
+  ]);
+  if (!moderation.ok) {
+    redirect(moderation.banned ? "/banned" : "/onboarding?error=language");
+  }
+  const [cleanGender, cleanNotes] = moderation.values;
 
   await supabase.from("style_dna").upsert({
     user_id: user.id,
     ...parsed.data,
-    style_notes: styleNotes || null,
+    gender: cleanGender || null,
+    style_notes: cleanNotes || null,
     updated_at: new Date().toISOString()
   });
 

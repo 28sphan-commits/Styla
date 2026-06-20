@@ -4,6 +4,8 @@ import {
   outfitCheckResultSchema,
   type OutfitCheckResult
 } from "@/lib/outfit-check/schema";
+import { STYLE_EVOLUTION_RULE } from "@/lib/ai/style-context";
+import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
 import type { WardrobeItem } from "@/lib/wardrobe/schema";
 
@@ -109,6 +111,7 @@ async function checkWithGemini({
                 "You are Styla, an honest AI fashion advisor. Evaluate the uploaded outfit photo against the selected style goal. " +
                 "Be specific and useful. Comment on color coordination, cohesion, fit/proportion, goal alignment, and realistic improvements. " +
                 "Use the user's Style DNA and wardrobe context where relevant, but evaluate the photo itself. " +
+                STYLE_EVOLUTION_RULE +
                 (userNotes
                   ? `The user added this specific context about what they want checked — treat it as their direct intent and address it head-on in your summary and fixes: "${userNotes}". `
                   : "") +
@@ -194,6 +197,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Choose a style goal." }, { status: 400 });
   }
 
+  // Moderate the freewrite context before it reaches Gemini.
+  const moderation = await enforceModeration(supabase, [
+    { value: parsedInput.data.userNotes }
+  ]);
+  if (!moderation.ok) {
+    return NextResponse.json(
+      { error: moderation.error, banned: moderation.banned },
+      { status: moderation.status }
+    );
+  }
+  const cleanNotes = moderation.values[0];
+
   if (!(image instanceof File)) {
     return NextResponse.json({ error: "Outfit photo is required." }, { status: 400 });
   }
@@ -229,7 +244,7 @@ export async function POST(request: Request) {
     const result = await checkWithGemini({
       image,
       styleGoal: parsedInput.data.styleGoal,
-      userNotes: parsedInput.data.userNotes,
+      userNotes: cleanNotes,
       styleDna,
       wardrobeItems: (wardrobeItems ?? []) as WardrobeItem[],
       savedOutfits: savedOutfits ?? []
