@@ -135,7 +135,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               <Camera size={14} aria-hidden="true" />
               Check
             </Link>
-            <Link href="/messages">
+            <Link href="/chat">
               <MessageCircle size={14} aria-hidden="true" />
               Chat
             </Link>

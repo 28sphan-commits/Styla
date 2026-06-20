@@ -143,7 +143,7 @@ export function MessageCenter({
             conversations.map((conversation) => (
               <Link
                 key={conversation.id}
-                href={`/messages/${conversation.id}`}
+                href={`/chat/${conversation.id}`}
                 className={
                   selectedConversation?.id === conversation.id
                     ? "conversation-row is-active"

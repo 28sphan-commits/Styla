@@ -29,7 +29,7 @@ export function MessageButton({ profileId, disabled = false }: MessageButtonProp
         throw new Error(payload.error ?? "Could not start this message.");
       }
 
-      router.push(`/messages/${payload.conversationId}`);
+      router.push(`/chat/${payload.conversationId}`);
     } finally {
       setIsStarting(false);
     }

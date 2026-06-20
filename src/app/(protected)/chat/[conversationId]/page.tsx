@@ -7,7 +7,11 @@ import {
 } from "@/lib/messages/loaders";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function MessagesPage() {
+type ConversationPageProps = {
+  params: Promise<{ conversationId: string }>;
+};
+
+export default async function ConversationPage({ params }: ConversationPageProps) {
   const supabase = await createClient();
 
   if (!supabase) {
@@ -32,12 +36,16 @@ export default async function MessagesPage() {
     redirect("/onboarding");
   }
 
-  const [conversations, shareableOutfits] = await Promise.all([
+  const { conversationId } = await params;
+  const [conversations, thread, shareableOutfits] = await Promise.all([
     loadDmConversations(supabase, user.id),
+    loadDmThread(supabase, user.id, conversationId),
     loadShareableDmOutfits(supabase, user.id)
   ]);
-  const selectedId = conversations[0]?.id ?? null;
-  const thread = await loadDmThread(supabase, user.id, selectedId);
+
+  if (!thread.conversation) {
+    redirect("/chat");
+  }
 
   return (
     <MessageCenter
