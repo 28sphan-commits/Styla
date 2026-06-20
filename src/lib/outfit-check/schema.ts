@@ -12,7 +12,16 @@ export const styleGoals = [
 ] as const;
 
 export const outfitCheckInputSchema = z.object({
-  styleGoal: z.enum(styleGoals)
+  styleGoal: z.enum(styleGoals),
+  // Optional free-form context the user types about what they want checked,
+  // e.g. "Going to a summer wedding, is this too casual?". Capped so an
+  // over-long note can't bloat the Gemini prompt; empty string normalizes to "".
+  userNotes: z
+    .string()
+    .trim()
+    .max(600)
+    .optional()
+    .transform((value) => value ?? "")
 });
 
 // Clamp AI free-text to a hard character budget so an over-long Gemini response

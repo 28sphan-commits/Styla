@@ -73,12 +73,14 @@ function normalizeResult(payload: unknown): OutfitCheckResult {
 async function checkWithGemini({
   image,
   styleGoal,
+  userNotes,
   styleDna,
   wardrobeItems,
   savedOutfits
 }: {
   image: File;
   styleGoal: string;
+  userNotes: string;
   styleDna: unknown;
   wardrobeItems: WardrobeItem[];
   savedOutfits: unknown[];
@@ -107,11 +109,15 @@ async function checkWithGemini({
                 "You are Styla, an honest AI fashion advisor. Evaluate the uploaded outfit photo against the selected style goal. " +
                 "Be specific and useful. Comment on color coordination, cohesion, fit/proportion, goal alignment, and realistic improvements. " +
                 "Use the user's Style DNA and wardrobe context where relevant, but evaluate the photo itself. " +
+                (userNotes
+                  ? `The user added this specific context about what they want checked — treat it as their direct intent and address it head-on in your summary and fixes: "${userNotes}". `
+                  : "") +
                 "Keep every field concise and within these character limits: summary 500, each strength 180, each fix 220, each missing piece 120, colorNotes 260, fitNotes 260. Provide 1 to 4 strengths and 1 to 4 fixes. " +
                 "Return only strict JSON: {\"score\": number 0-100, \"summary\": string, \"strengths\": string[], \"fixes\": string[], \"missingPieces\": string[], \"colorNotes\": string, \"fitNotes\": string}.\n\n" +
                 JSON.stringify(
                   {
                     styleGoal,
+                    userNotes,
                     styleDna,
                     wardrobeItems: wardrobeItems.map((item) => ({
                       id: item.id,
@@ -180,7 +186,8 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const image = formData.get("image");
   const parsedInput = outfitCheckInputSchema.safeParse({
-    styleGoal: formData.get("styleGoal")
+    styleGoal: formData.get("styleGoal"),
+    userNotes: formData.get("userNotes") ?? undefined
   });
 
   if (!parsedInput.success) {
@@ -222,6 +229,7 @@ export async function POST(request: Request) {
     const result = await checkWithGemini({
       image,
       styleGoal: parsedInput.data.styleGoal,
+      userNotes: parsedInput.data.userNotes,
       styleDna,
       wardrobeItems: (wardrobeItems ?? []) as WardrobeItem[],
       savedOutfits: savedOutfits ?? []

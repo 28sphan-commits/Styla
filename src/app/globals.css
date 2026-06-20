@@ -1385,6 +1385,65 @@ select:focus-visible {
   box-shadow: 0 16px 46px rgba(40, 55, 31, 0.07);
 }
 
+.check-notes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.check-notes-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.check-notes-hint {
+  margin: -4px 0 2px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.check-notes-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--soft);
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: var(--green-dark);
+}
+
+.check-notes-field textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 252, 0.78);
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.55;
+  color: var(--ink);
+  resize: vertical;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.check-notes-field textarea:focus {
+  outline: none;
+  border-color: rgba(81, 125, 74, 0.5);
+  box-shadow: var(--shadow);
+}
+
+.check-notes-field textarea::placeholder {
+  color: var(--muted);
+}
+
+.check-notes-field small {
+  color: var(--muted);
+  font-size: 12px;
+  padding-left: 2px;
+}
+
 .check-upload {
   position: relative;
   display: grid;
@@ -3570,29 +3629,6 @@ select:focus-visible {
 
 .generate-actions .generate-action {
   margin: 0;
-}
-
-.generate-skip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper-strong);
-  padding: 11px 18px;
-  color: var(--green-dark);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.generate-skip:hover:not(:disabled) {
-  border-color: var(--green);
-  color: var(--green);
-}
-
-.generate-skip:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .generate-tags {

@@ -11,13 +11,29 @@ import {
 
 export function OutfitChecker() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
   const [styleGoal, setStyleGoal] = useState<StyleGoal>("casual");
+  const [userNotes, setUserNotes] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OutfitCheckResult | null>(null);
+
+  // The goal pills are prompt shortcuts: tapping one drops a scoped tag
+  // (e.g. #Goal:Business) into the notes prompt below, mirroring the Generate
+  // page. styleGoal is kept in sync under the hood so the API still receives a
+  // valid enum to score against.
+  function pickGoal(goal: StyleGoal) {
+    setStyleGoal(goal);
+    const tag = `#Goal:${styleGoalLabels[goal].replace(/\s+/g, "")}`;
+    setUserNotes((current) => {
+      const base = current.trimEnd();
+      return `${base ? `${base} ` : ""}${tag} `;
+    });
+    notesRef.current?.focus();
+  }
 
   function selectFile(nextFile: File | null) {
     if (!nextFile) return;
@@ -43,6 +59,9 @@ export function OutfitChecker() {
       const formData = new FormData();
       formData.append("image", file);
       formData.append("styleGoal", styleGoal);
+      if (userNotes.trim()) {
+        formData.append("userNotes", userNotes.trim());
+      }
 
       const response = await fetch("/api/ai/outfit-check", {
         method: "POST",
@@ -90,13 +109,30 @@ export function OutfitChecker() {
               <button
                 key={goal}
                 type="button"
-                className={styleGoal === goal ? "filter-chip is-active" : "filter-chip"}
-                onClick={() => setStyleGoal(goal)}
+                className="filter-chip"
+                onClick={() => pickGoal(goal)}
               >
                 {styleGoalLabels[goal]}
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="check-notes-field">
+          <label htmlFor="outfit-check-notes">Anything specific? (optional)</label>
+          <p className="check-notes-hint">
+            Tap a goal above to drop a tag (e.g. <code>#Goal:Business</code>) into your prompt,
+            or just type what you want checked.
+          </p>
+          <textarea
+            id="outfit-check-notes"
+            ref={notesRef}
+            placeholder="e.g. Going to a summer wedding, is this too casual? Or: I feel like the proportions are off, how can I fix it?"
+            maxLength={600}
+            value={userNotes}
+            onChange={(event) => setUserNotes(event.target.value)}
+          />
+          <small>{userNotes.length}/600 · Styla will focus its critique on what you ask</small>
         </div>
 
         <div
