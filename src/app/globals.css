@@ -5297,3 +5297,96 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Wardrobe try-on grid ── */
+.wardrobe-tryon {
+  margin-top: 12px;
+}
+
+.tryon-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.tryon-stage {
+  position: relative;
+}
+
+.tryon-stage-label {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  border-radius: 999px;
+  background: rgba(23, 26, 23, 0.72);
+  color: #fff;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tryon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.tryon-item {
+  position: relative;
+  aspect-ratio: 1 / 1.1;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f9f9f6;
+  padding: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.tryon-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tryon-item:hover:not(.is-disabled) {
+  border-color: var(--green);
+  transform: translateY(-2px);
+}
+
+.tryon-item.is-selected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-soft);
+}
+
+.tryon-item.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tryon-item-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+}
+
+.tryon-item-badge.is-ready {
+  background: var(--green);
+}
+
+.tryon-item-badge.is-loading {
+  background: rgba(23, 26, 23, 0.72);
+}
+
+@media (max-width: 720px) {
+  .tryon-layout {
+    grid-template-columns: 1fr;
+  }
+}
