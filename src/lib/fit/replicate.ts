@@ -5,9 +5,11 @@
 
 const REPLICATE_API = "https://api.replicate.com/v1";
 
-// Model slug (owner/name). Using the model-predictions endpoint runs the latest
-// version without pinning a hash; override via env to pin or swap models.
-const FACESWAP_MODEL = process.env.REPLICATE_FACESWAP_MODEL ?? "cdingram/face-swap";
+// Model slug (owner/name). codeplugtech/face-swap is a public community model
+// (verified runnable on a standard account). Override via env to swap models —
+// note that commercial models like easel/advanced-face-swap are gated and 422
+// with "no permission" unless your account has been granted access.
+const FACESWAP_MODEL = process.env.REPLICATE_FACESWAP_MODEL ?? "codeplugtech/face-swap";
 
 // Base mannequin photos the user's face is swapped ONTO. These must be real,
 // licensed full-body images placed in /public/fit-models/base/. Until they
@@ -49,6 +51,27 @@ export function resolveTargetUrl(
 
 type StartResult = { id: string; status: string };
 
+// Resolves the model's latest version hash. The version-based /v1/predictions
+// endpoint works for community models, unlike /v1/models/{slug}/predictions
+// which is limited to Replicate "official" models.
+async function resolveVersion(token: string): Promise<string> {
+  const response = await fetch(`${REPLICATE_API}/models/${FACESWAP_MODEL}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Could not load model ${FACESWAP_MODEL} (HTTP ${response.status}) — it may be gated, private, or misspelled.`
+    );
+  }
+  const data = await response.json();
+  const version = data?.latest_version?.id;
+  if (!version) {
+    throw new Error(`Model ${FACESWAP_MODEL} has no available version.`);
+  }
+  return version as string;
+}
+
 /** Kicks off a face-swap prediction. `faceUrl` is the selfie, `targetUrl` the base body. */
 export async function startFaceSwap(opts: {
   faceUrl: string;
@@ -57,19 +80,22 @@ export async function startFaceSwap(opts: {
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) throw new Error("Replicate is not configured.");
 
-  const response = await fetch(`${REPLICATE_API}/models/${FACESWAP_MODEL}/predictions`, {
+  const version = await resolveVersion(token);
+
+  const response = await fetch(`${REPLICATE_API}/predictions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      // easel/advanced-face-swap inputs: swap_image (the face), target_image
-      // (the body to swap onto), hair_source ("target" keeps the base's hair).
+      version,
+      // codeplugtech/face-swap inputs: swap_image (the face) + input_image (the
+      // body to swap onto). Input keys are model-specific — adjust if you swap
+      // REPLICATE_FACESWAP_MODEL for one with a different schema.
       input: {
         swap_image: opts.faceUrl,
-        target_image: opts.targetUrl,
-        hair_source: "target"
+        input_image: opts.targetUrl
       }
     })
   });
