@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  baseModelPath,
   isReplicateConfigured,
+  resolveTargetUrl,
   startFaceSwap
 } from "@/lib/fit/replicate";
 import { createClient } from "@/lib/supabase/server";
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   const origin = new URL(request.url).origin;
-  const targetUrl = `${origin}${baseModelPath(styleDna?.gender)}`;
+  const targetUrl = resolveTargetUrl(origin, styleDna?.gender);
 
   try {
     const prediction = await startFaceSwap({

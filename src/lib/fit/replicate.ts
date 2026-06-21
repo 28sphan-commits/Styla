@@ -22,7 +22,7 @@ export function isReplicateConfigured(): boolean {
   return Boolean(process.env.REPLICATE_API_TOKEN);
 }
 
-/** Picks a base mannequin from the user's free-form gender, defaulting neutral. */
+/** Picks a base mannequin path from the user's free-form gender, default neutral. */
 export function baseModelPath(gender: string | null | undefined): string {
   const g = (gender ?? "").toLowerCase();
   if (/(^|\b)(woman|female|she|her|girl)/.test(g)) return BASE_MODELS.femme;
@@ -30,6 +30,21 @@ export function baseModelPath(gender: string | null | undefined): string {
     return BASE_MODELS.masc;
   }
   return BASE_MODELS.neutral;
+}
+
+/**
+ * Resolves the public, cloud-reachable URL of the base body to swap onto.
+ * Replicate runs in the cloud and CANNOT fetch a localhost origin, so a full
+ * REPLICATE_BASE_IMAGE_URL override is required for local testing (and is the
+ * simplest path until a per-gender base library is hosted publicly).
+ */
+export function resolveTargetUrl(
+  origin: string,
+  gender: string | null | undefined
+): string {
+  const override = process.env.REPLICATE_BASE_IMAGE_URL;
+  if (override) return override;
+  return `${origin}${baseModelPath(gender)}`;
 }
 
 type StartResult = { id: string; status: string };
@@ -49,7 +64,13 @@ export async function startFaceSwap(opts: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      input: { swap_image: opts.faceUrl, input_image: opts.targetUrl }
+      // easel/advanced-face-swap inputs: swap_image (the face), target_image
+      // (the body to swap onto), hair_source ("target" keeps the base's hair).
+      input: {
+        swap_image: opts.faceUrl,
+        target_image: opts.targetUrl,
+        hair_source: "target"
+      }
     })
   });
 
