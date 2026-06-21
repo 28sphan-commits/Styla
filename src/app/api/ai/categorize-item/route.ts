@@ -149,7 +149,12 @@ export async function POST(request: Request) {
 
   try {
     const ai = await categorizeWithGemini(image);
-    const extension = image.type === "image/jpeg" ? "jpg" : "png";
+    const extensionByType: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/webp": "webp",
+      "image/png": "png"
+    };
+    const extension = extensionByType[image.type] ?? "png";
     const storagePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await supabase.storage

@@ -85,3 +85,50 @@ export async function prepareImageFile(file: File): Promise<File> {
     lastModified: Date.now()
   });
 }
+
+type CompressOptions = {
+  maxDimension?: number;
+  quality?: number;
+  mimeType?: "image/jpeg" | "image/webp";
+};
+
+/**
+ * Downscales + re-encodes an image so the bytes sent over the network stay
+ * small. Used for the fallback upload path (when AI background removal can't
+ * run); the happy path already emits a compact WebP cut-out. Returns the
+ * original file if compression wouldn't actually make it smaller.
+ */
+export async function compressImage(
+  file: File,
+  { maxDimension = 1600, quality = 0.82, mimeType = "image/jpeg" }: CompressOptions = {}
+): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+  const width = Math.round(bitmap.width * scale);
+  const height = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    bitmap.close?.();
+    return file;
+  }
+
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, mimeType, quality)
+  );
+
+  if (!blob || blob.size >= file.size) {
+    return file;
+  }
+
+  const extension = mimeType === "image/webp" ? "webp" : "jpg";
+  const name = file.name.replace(/\.[^.]+$/, "") + `.${extension}`;
+  return new File([blob], name, { type: mimeType });
+}

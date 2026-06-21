@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Camera, Loader2, Sparkles, Trash2, UploadCloud } from "lucide-react";
-import { removeSimpleBackground } from "@/lib/wardrobe/background-removal";
+import { Camera, Loader2, Shirt, Sparkles, Trash2, UploadCloud } from "lucide-react";
+import { removeImageBackground } from "@/lib/wardrobe/background-removal";
 import {
   ACCEPTED_IMAGE_ACCEPT,
+  compressImage,
   isHeic,
   prepareImageFile
 } from "@/lib/wardrobe/image-intake";
@@ -28,6 +29,15 @@ type ActiveFilter = {
   value: string;
 };
 
+// An in-flight upload shown optimistically as a placeholder card while the
+// background remover + AI tagging run in the background.
+type PendingUpload = {
+  id: string;
+  previewUrl: string | null;
+  status: string;
+  error: string | null;
+};
+
 const defaultFilter: ActiveFilter = { kind: "all", value: "all" };
 
 export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
@@ -36,8 +46,7 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
   const [items, setItems] = useState(initialItems);
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>(defaultFilter);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingUpload[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const filteredItems = useMemo(() => {
@@ -86,22 +95,64 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
     [filteredItems]
   );
 
+  function updatePending(id: string, patch: Partial<PendingUpload>) {
+    setPending((current) =>
+      current.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry))
+    );
+  }
+
+  function removePending(id: string) {
+    setPending((current) => {
+      const target = current.find((entry) => entry.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return current.filter((entry) => entry.id !== id);
+    });
+  }
+
   async function uploadFile(file: File) {
-    setIsUploading(true);
-    setError(null);
+    // Optimistic UI: drop a placeholder card into the closet immediately so the
+    // upload feels instant. Non-HEIC files get a live preview right away; HEIC
+    // can't render until it's converted a moment later.
+    const id = crypto.randomUUID();
+    const instantPreview = isHeic(file) ? null : URL.createObjectURL(file);
+    setPending((current) => [
+      { id, previewUrl: instantPreview, status: "Preparing photo...", error: null },
+      ...current
+    ]);
 
     try {
-      // Validate size/type and convert iPhone HEIC/HEIF photos to JPEG first,
-      // so the canvas + AI steps below receive a browser-readable image.
-      setStatus(isHeic(file) ? "Converting iPhone photo..." : "Preparing photo...");
+      // Validate size/type and convert iPhone HEIC/HEIF photos to JPEG first.
+      updatePending(id, {
+        status: isHeic(file) ? "Converting iPhone photo..." : "Preparing photo..."
+      });
       const readyFile = await prepareImageFile(file);
 
-      setStatus("Removing background...");
-      const cleanedFile = await removeSimpleBackground(readyFile);
+      if (!instantPreview) {
+        updatePending(id, { previewUrl: URL.createObjectURL(readyFile) });
+      }
+
+      // AI cut-out runs in the browser. If it fails (offline, unsupported
+      // device, blocked CDN), fall back to a compressed copy so the upload
+      // still succeeds rather than dead-ending the user.
+      let cleanedFile: File;
+      try {
+        updatePending(id, { status: "Removing background..." });
+        cleanedFile = await removeImageBackground(readyFile, (ratio) => {
+          updatePending(id, { status: `Removing background... ${Math.round(ratio * 100)}%` });
+        });
+      } catch (removalError) {
+        console.warn("Background removal failed, using original image.", removalError);
+        try {
+          cleanedFile = await compressImage(readyFile);
+        } catch {
+          cleanedFile = readyFile;
+        }
+      }
+
+      updatePending(id, { status: "Tagging this piece..." });
       const formData = new FormData();
       formData.append("image", cleanedFile);
 
-      setStatus("Categorizing this piece...");
       const response = await fetch("/api/ai/categorize-item", {
         method: "POST",
         body: formData
@@ -113,20 +164,17 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
         throw new Error(payload.error ?? "Upload failed.");
       }
 
+      // Done: smoothly swap the placeholder for the real, tagged item.
       setItems((current) => [payload.item, ...current]);
-      setStatus("Saved to your wardrobe.");
-      window.setTimeout(() => setStatus(null), 1800);
+      removePending(id);
     } catch (uploadError) {
-      setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "Could not upload this clothing item."
-      );
-      setStatus(null);
-    } finally {
-      setIsUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      updatePending(id, {
+        status: "",
+        error:
+          uploadError instanceof Error
+            ? uploadError.message
+            : "Could not upload this clothing item."
+      });
     }
   }
 
@@ -147,7 +195,11 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
 
   function handleFiles(fileList: FileList | null) {
     const file = fileList?.[0];
-    if (!file || isUploading) return;
+    // Reset inputs right away so the same file can be re-picked and so the next
+    // item can be added while this one is still processing.
+    if (inputRef.current) inputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (!file) return;
     void uploadFile(file);
   }
 
@@ -221,23 +273,19 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
         <button
           type="button"
           className="upload-button"
-          disabled={isUploading}
           onClick={() => inputRef.current?.click()}
         >
-          {isUploading ? (
-            <Loader2 size={19} aria-hidden="true" className="spin" />
-          ) : (
-            <UploadCloud size={19} aria-hidden="true" />
-          )}
+          <UploadCloud size={19} aria-hidden="true" />
         </button>
         <strong>
-          {isUploading ? status ?? "Working..." : "Drop a clothing photograph here"}
+          {pending.length > 0
+            ? "Add another — we'll keep processing"
+            : "Drop a clothing photograph here"}
         </strong>
         <span>or click to browse - PNG, JPG, WebP, or HEIC up to 10 MB</span>
         <button
           type="button"
           className="take-photo-btn"
-          disabled={isUploading}
           onClick={() => cameraInputRef.current?.click()}
         >
           <Camera size={14} aria-hidden="true" />
@@ -246,7 +294,6 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
       </div>
 
       {error ? <p className="inline-error">{error}</p> : null}
-      {status && !isUploading ? <p className="inline-success">{status}</p> : null}
 
       <div className="filters-panel">
         <FilterRow label="Type">
@@ -296,8 +343,25 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
         </FilterRow>
       </div>
 
-      {groupedItems.length ? (
+      {pending.length || groupedItems.length ? (
         <div className="wardrobe-groups">
+          {pending.length ? (
+            <section className="wardrobe-group">
+              <h2>
+                Adding to your closet{" "}
+                <span>{pending.length} processing</span>
+              </h2>
+              <div className="wardrobe-grid">
+                {pending.map((entry) => (
+                  <PendingCard
+                    key={entry.id}
+                    pending={entry}
+                    onDismiss={() => removePending(entry.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
           {groupedItems.map((group) => (
             <section className="wardrobe-group" key={group.type}>
               <h2>
@@ -356,6 +420,41 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <Sparkles size={14} aria-hidden="true" />
       <strong>{value}</strong>
       <span>{label}</span>
+    </article>
+  );
+}
+
+function PendingCard({
+  pending,
+  onDismiss
+}: {
+  pending: PendingUpload;
+  onDismiss: () => void;
+}) {
+  return (
+    <article className={`wardrobe-card pending-card${pending.error ? " has-error" : ""}`}>
+      <div className="item-image-wrap pending-image">
+        {pending.previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={pending.previewUrl} alt="" className="pending-preview" />
+        ) : null}
+        <span className="pending-shirt" aria-hidden="true">
+          <Shirt size={30} />
+        </span>
+      </div>
+      {pending.error ? (
+        <>
+          <p className="pending-error-text">{pending.error}</p>
+          <button type="button" className="pending-dismiss" onClick={onDismiss}>
+            Dismiss
+          </button>
+        </>
+      ) : (
+        <p className="pending-status">
+          <Loader2 size={12} aria-hidden="true" className="spin" />
+          {pending.status}
+        </p>
+      )}
     </article>
   );
 }

@@ -1088,18 +1088,121 @@ select:focus-visible {
   display: grid;
   aspect-ratio: 1 / 1.18;
   place-items: center;
+  padding: 12px;
+  border: 1px solid #eef0ea;
   border-radius: 10px;
-  background:
-    linear-gradient(45deg, rgba(232, 236, 225, 0.5) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(232, 236, 225, 0.5) 25%, transparent 25%),
-    rgba(248, 249, 244, 0.9);
-  background-size: 18px 18px;
+  /* Soft off-white so the transparent cut-outs pop cleanly. */
+  background: #f9f9f6;
 }
 
 .item-image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Optimistic upload placeholder */
+.pending-card {
+  position: relative;
+}
+
+.pending-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.pending-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: pending-shimmer 1.5s ease-in-out infinite;
+}
+
+.pending-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.32;
+  filter: blur(1px);
+}
+
+.pending-shirt {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: var(--green);
+  animation: pending-pulse 1.4s ease-in-out infinite;
+}
+
+.pending-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pending-card.has-error .item-image-wrap {
+  border-color: #e3b7b7;
+  background: #fbf3f3;
+}
+
+.pending-card.has-error .pending-image::after {
+  animation: none;
+}
+
+.pending-error-text {
+  margin: 10px 0 7px;
+  color: #b4504f;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pending-dismiss {
+  border: 1px solid #e3b7b7;
+  border-radius: 999px;
+  background: #fbeeee;
+  padding: 5px 12px;
+  color: #b4504f;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+@keyframes pending-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes pending-shimmer {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -150% 0;
+  }
 }
 
 .wardrobe-card h3 {
