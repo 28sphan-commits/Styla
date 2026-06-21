@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveBaseModelKey } from "@/lib/fit/base-library";
 import {
   isReplicateConfigured,
   resolveTargetUrl,
@@ -100,12 +101,12 @@ export async function POST(request: Request) {
 
   const { data: styleDna } = await supabase
     .from("style_dna")
-    .select("gender")
+    .select("gender, body_type")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const origin = new URL(request.url).origin;
-  const targetUrl = resolveTargetUrl(origin, styleDna?.gender);
+  const baseSelection = { gender: styleDna?.gender, bodyType: styleDna?.body_type };
+  const targetUrl = resolveTargetUrl(baseSelection);
 
   try {
     const prediction = await startFaceSwap({
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
       avatar_provider: "replicate",
       avatar_job_id: prediction.id,
       avatar_error: null,
+      base_model_key: resolveBaseModelKey(baseSelection),
       updated_at: nowIso
     });
 
