@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { measurementsSchema } from "@/lib/onboarding";
 import { profileUpdateSchema } from "@/lib/profile/schema";
 import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
@@ -36,7 +37,9 @@ export async function POST(request: Request) {
     body_type: formData.get("body_type"),
     lifestyle: formData.get("lifestyle"),
     budget_per_item: formData.get("budget_per_item"),
-    color_preference: formData.get("color_preference")
+    color_preference: formData.get("color_preference"),
+    gender: formData.get("gender") ?? "",
+    style_notes: formData.get("style_notes") ?? ""
   });
 
   if (!parsed.success) {
@@ -46,11 +49,13 @@ export async function POST(request: Request) {
     );
   }
 
-  // Moderate username (block any profanity — can't mask an identifier) and bio
-  // (mild language is censored, severe blocks + strikes).
+  // Moderate username (block any profanity — can't mask an identifier), bio,
+  // gender, and style notes (mild language is censored, severe blocks + strikes).
   const moderation = await enforceModeration(supabase, [
     { value: parsed.data.username ?? "", block: true },
-    { value: parsed.data.bio }
+    { value: parsed.data.bio },
+    { value: parsed.data.gender },
+    { value: parsed.data.style_notes }
   ]);
   if (!moderation.ok) {
     return NextResponse.json(
@@ -58,7 +63,7 @@ export async function POST(request: Request) {
       { status: moderation.status }
     );
   }
-  const [, cleanBio] = moderation.values;
+  const [, cleanBio, cleanGender, cleanNotes] = moderation.values;
 
   let avatarUrl: string | null = null;
   const avatar = formData.get("avatar");
@@ -128,6 +133,8 @@ export async function POST(request: Request) {
       lifestyle: parsed.data.lifestyle,
       budget_per_item: parsed.data.budget_per_item,
       color_preference: parsed.data.color_preference,
+      gender: cleanGender || null,
+      style_notes: cleanNotes || null,
       updated_at: new Date().toISOString()
     })
     .select("*")
@@ -137,5 +144,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: styleDnaError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ profile, styleDna });
+  // Measurements are optional — only persist when both height and weight were
+  // entered (the schema rejects blank / partial input).
+  let measurements = null;
+  const parsedMeasurements = measurementsSchema.safeParse({
+    height_cm: formData.get("height_cm"),
+    weight_kg: formData.get("weight_kg"),
+    measurement_unit: formData.get("measurement_unit") ?? "imperial"
+  });
+  if (parsedMeasurements.success) {
+    const { data: fitProfile } = await supabase
+      .from("fit_profiles")
+      .upsert({
+        user_id: user.id,
+        height_cm: parsedMeasurements.data.height_cm,
+        weight_kg: parsedMeasurements.data.weight_kg,
+        measurement_unit: parsedMeasurements.data.measurement_unit,
+        updated_at: new Date().toISOString()
+      })
+      .select("height_cm, weight_kg, measurement_unit")
+      .single();
+    measurements = fitProfile;
+  }
+
+  return NextResponse.json({ profile, styleDna, measurements });
 }

@@ -5,6 +5,25 @@ export type BodyType = "petite" | "tall" | "curvy" | "athletic" | "straight";
 
 export type MeasurementUnit = "imperial" | "metric";
 
+// Canonical metric values + display-unit preference, as loaded from fit_profiles.
+export type InitialMeasurements = {
+  heightCm: number | null;
+  weightKg: number | null;
+  unit: MeasurementUnit;
+};
+
+// Display-unit field state shared by the onboarding and profile editors. Both
+// unit sets stay populated so toggling units carries values over without a
+// round-trip through canonical values.
+export type MeasureState = {
+  unit: MeasurementUnit;
+  feet: string;
+  inches: string;
+  pounds: string;
+  cm: string;
+  kg: string;
+};
+
 const CM_PER_INCH = 2.54;
 const KG_PER_LB = 0.453592;
 
@@ -87,4 +106,57 @@ export function computeBodyShape({
     heightScale,
     bmi
   };
+}
+
+// Seeds editable field state from canonical metric values. Populates both unit
+// sets up front so switching units never loses what the user typed.
+export function buildMeasureState(initial?: InitialMeasurements): MeasureState {
+  const unit = initial?.unit ?? "imperial";
+  const heightCm = initial?.heightCm ?? null;
+  const weightKg = initial?.weightKg ?? null;
+  const fi = heightCm != null ? cmToFeetInches(heightCm) : null;
+  return {
+    unit,
+    feet: fi ? String(fi.feet) : "",
+    inches: fi ? String(fi.inches) : "",
+    pounds: weightKg != null ? String(Math.round(kgToLb(weightKg))) : "",
+    cm: heightCm != null ? String(Math.round(heightCm)) : "",
+    kg: weightKg != null ? String(Math.round(weightKg)) : ""
+  };
+}
+
+// Derives canonical metric values from whichever unit is currently active.
+export function canonicalFrom(m: MeasureState): {
+  heightCm: number | null;
+  weightKg: number | null;
+} {
+  if (m.unit === "imperial") {
+    const ft = parseFloat(m.feet);
+    const inch = parseFloat(m.inches);
+    const lb = parseFloat(m.pounds);
+    return {
+      heightCm:
+        m.feet && !isNaN(ft) ? feetInchesToCm(ft, isNaN(inch) ? 0 : inch) : null,
+      weightKg: m.pounds && !isNaN(lb) ? lbToKg(lb) : null
+    };
+  }
+  const cm = parseFloat(m.cm);
+  const kg = parseFloat(m.kg);
+  return {
+    heightCm: m.cm && !isNaN(cm) ? cm : null,
+    weightKg: m.kg && !isNaN(kg) ? kg : null
+  };
+}
+
+// Recomputes the target-unit fields from the current canonical values, so a
+// height/weight typed in one system survives the toggle.
+export function switchUnitState(m: MeasureState, unit: MeasurementUnit): MeasureState {
+  if (m.unit === unit) return m;
+  const { heightCm, weightKg } = canonicalFrom(m);
+  return { ...buildMeasureState({ heightCm, weightKg, unit }) };
+}
+
+// Strips non-digits and caps length for measurement inputs.
+export function onlyDigits(value: string): string {
+  return value.replace(/[^\d]/g, "").slice(0, 3);
 }

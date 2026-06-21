@@ -10,11 +10,21 @@ import {
   styleAestheticOptions,
   type StyleDna
 } from "@/lib/onboarding";
+import { MeasurementFields } from "@/components/fit/measurement-fields";
+import {
+  buildMeasureState,
+  canonicalFrom,
+  type InitialMeasurements,
+  type MeasureState
+} from "@/lib/fit/measurements";
 import type { ProfileRecord } from "@/lib/profile/schema";
 
 type ProfileEditorProps = {
   initialProfile: ProfileRecord;
   initialStyleDna: StyleDna;
+  initialGender?: string;
+  initialStyleNotes?: string;
+  initialMeasurements?: InitialMeasurements;
 };
 
 const planCards = [
@@ -45,11 +55,19 @@ const paymentLinks = {
 
 export function ProfileEditor({
   initialProfile,
-  initialStyleDna
+  initialStyleDna,
+  initialGender = "",
+  initialStyleNotes = "",
+  initialMeasurements
 }: ProfileEditorProps) {
   const avatarRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState(initialProfile);
   const [styleDna, setStyleDna] = useState(initialStyleDna);
+  const [gender, setGender] = useState(initialGender);
+  const [styleNotes, setStyleNotes] = useState(initialStyleNotes);
+  const [measure, setMeasure] = useState<MeasureState>(() =>
+    buildMeasureState(initialMeasurements)
+  );
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -76,9 +94,27 @@ export function ProfileEditor({
     formData.append("membership_tier", profile.membership_tier);
     formData.append("is_public", String(profile.is_public));
     formData.append("show_outfits", String(profile.show_outfits));
-    Object.entries(styleDna).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+    // Append only the known Style DNA fields explicitly. `styleDna` is loaded
+    // via select("*") so it also carries gender/style_notes/timestamps; blindly
+    // appending those would shadow the edited gender/style_notes values below.
+    formData.append("style_aesthetic", styleDna.style_aesthetic);
+    formData.append("body_type", styleDna.body_type);
+    formData.append("lifestyle", styleDna.lifestyle);
+    formData.append("budget_per_item", styleDna.budget_per_item);
+    formData.append("color_preference", styleDna.color_preference);
+    formData.append("gender", gender);
+    formData.append("style_notes", styleNotes);
+
+    const canonical = canonicalFrom(measure);
+    formData.append(
+      "height_cm",
+      canonical.heightCm != null ? canonical.heightCm.toFixed(1) : ""
+    );
+    formData.append(
+      "weight_kg",
+      canonical.weightKg != null ? canonical.weightKg.toFixed(1) : ""
+    );
+    formData.append("measurement_unit", measure.unit);
 
     if (avatarFile) {
       formData.append("avatar", avatarFile);
@@ -97,6 +133,26 @@ export function ProfileEditor({
 
       setProfile(payload.profile);
       setStyleDna(payload.styleDna);
+      setGender(payload.styleDna.gender ?? "");
+      setStyleNotes(payload.styleDna.style_notes ?? "");
+      if (payload.measurements) {
+        setMeasure(
+          buildMeasureState({
+            heightCm:
+              payload.measurements.height_cm != null
+                ? Number(payload.measurements.height_cm)
+                : null,
+            weightKg:
+              payload.measurements.weight_kg != null
+                ? Number(payload.measurements.weight_kg)
+                : null,
+            unit:
+              payload.measurements.measurement_unit === "metric"
+                ? "metric"
+                : "imperial"
+          })
+        );
+      }
       setAvatarFile(null);
       setStatus("Profile saved.");
       window.setTimeout(() => setStatus(null), 1800);
@@ -194,7 +250,38 @@ export function ProfileEditor({
               setStyleDna((current) => ({ ...current, color_preference: value }))
             }
           />
+          <label className="profile-select">
+            <span>Gender</span>
+            <input
+              value={gender}
+              maxLength={80}
+              placeholder="How you identify"
+              onChange={(event) => setGender(event.target.value)}
+            />
+            <small>Helps tailor fits and silhouettes.</small>
+          </label>
         </div>
+
+        <div className="profile-build">
+          <span className="profile-subhead">Your Build</span>
+          <MeasurementFields
+            value={measure}
+            onChange={setMeasure}
+            showPreview={false}
+            hint="Sizes your fitting-room silhouette. Optional."
+          />
+        </div>
+
+        <label className="profile-style-notes">
+          <span>Style Notes</span>
+          <textarea
+            value={styleNotes}
+            maxLength={1200}
+            placeholder="Describe your style in your own words…"
+            onChange={(event) => setStyleNotes(event.target.value)}
+          />
+          <small>{styleNotes.length}/1200</small>
+        </label>
       </section>
 
       <section className="profile-panel">

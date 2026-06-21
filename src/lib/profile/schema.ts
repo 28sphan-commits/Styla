@@ -17,7 +17,10 @@ export const profileUpdateSchema = z
     is_public: z.boolean(),
     show_outfits: z.boolean(),
     membership_tier: z.enum(membershipTiers),
-    ...styleDnaSchema.shape
+    ...styleDnaSchema.shape,
+    // Freeform survey fields, also asked during onboarding.
+    gender: z.string().trim().max(80).optional().default(""),
+    style_notes: z.string().trim().max(1200).optional().default("")
   })
   .refine((value) => !value.is_public || Boolean(value.username), {
     message: "Choose a username before making your profile public.",

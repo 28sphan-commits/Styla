@@ -3179,6 +3179,102 @@ select:focus-visible {
   line-height: 1.4;
 }
 
+.profile-select input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(247, 248, 241, 0.78);
+  color: var(--ink);
+  padding: 10px 12px;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.profile-build {
+  display: grid;
+  gap: 8px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-build .measure-step {
+  width: 100%;
+  margin: 0;
+}
+
+/* Compact, preview-less layout for the profile: lay the toggle + inputs in a
+   single horizontal row so the section stays as small as the other fields. */
+.measure-compact {
+  display: block;
+}
+
+.profile-build .measure-fields {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 18px;
+}
+
+.profile-build .unit-toggle {
+  align-self: flex-end;
+  padding: 3px;
+}
+
+.profile-build .unit-toggle button {
+  padding: 6px 14px;
+}
+
+.profile-build .measure-label {
+  gap: 5px;
+}
+
+.profile-build .measure-pair input {
+  width: 54px;
+  padding: 7px 10px;
+  font-size: 14px;
+}
+
+.profile-build .measure-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.profile-style-notes {
+  display: grid;
+  gap: 7px;
+  padding: 13px 18px;
+}
+
+.profile-subhead,
+.profile-style-notes > span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--green-dark);
+}
+
+.profile-style-notes textarea {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(247, 248, 241, 0.78);
+  color: var(--ink);
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+}
+
+.profile-style-notes small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .plan-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

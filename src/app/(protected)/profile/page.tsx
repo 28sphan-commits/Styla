@@ -35,6 +35,22 @@ export default async function ProfilePage() {
     redirect("/onboarding");
   }
 
+  const { data: fitProfile } = await supabase
+    .from("fit_profiles")
+    .select("height_cm, weight_kg, measurement_unit")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // Postgres `numeric` arrives as a string from supabase-js — coerce to number.
+  const initialMeasurements = {
+    heightCm: fitProfile?.height_cm != null ? Number(fitProfile.height_cm) : null,
+    weightKg: fitProfile?.weight_kg != null ? Number(fitProfile.weight_kg) : null,
+    unit:
+      fitProfile?.measurement_unit === "metric"
+        ? ("metric" as const)
+        : ("imperial" as const)
+  };
+
   return (
     <ProfileEditor
       initialProfile={
@@ -51,6 +67,9 @@ export default async function ProfilePage() {
         } as ProfileRecord
       }
       initialStyleDna={styleDna as StyleDna}
+      initialGender={styleDna.gender ?? ""}
+      initialStyleNotes={styleDna.style_notes ?? ""}
+      initialMeasurements={initialMeasurements}
     />
   );
 }
