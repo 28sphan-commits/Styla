@@ -7,6 +7,7 @@ const navItems = [
   { href: "/generate", label: "Generate" },
   { href: "/outfit-check", label: "Check" },
   { href: "/outfits", label: "Outfits" },
+  { href: "/fitting-room", label: "Fitting Room" },
   { href: "/chat", label: "Chat" },
   { href: "/profile", label: "Profile" }
 ];
