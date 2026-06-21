@@ -398,8 +398,9 @@ select:focus-visible {
 
 .progress-track {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 18px;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 10px;
 }
 
 .progress-track span {
@@ -531,6 +532,139 @@ select:focus-visible {
   color: var(--muted);
   font-size: 13px;
   padding-left: 4px;
+}
+
+/* Measurements step + live silhouette */
+.measure-step {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 32px;
+  align-items: center;
+  width: min(100%, 980px);
+  margin: 42px auto;
+}
+
+.measure-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.unit-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #e7ece2;
+}
+
+.unit-toggle button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 8px 20px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.unit-toggle button.is-active {
+  background: var(--green);
+  color: #fff;
+}
+
+.measure-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.measure-label > span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.measure-pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.measure-pair input {
+  width: 92px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 252, 0.82);
+  font-size: 18px;
+  font-family: inherit;
+  color: var(--ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.measure-pair input:focus {
+  outline: none;
+  border-color: rgba(81, 125, 74, 0.5);
+  box-shadow: var(--shadow);
+}
+
+.measure-pair em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.measure-hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.measure-preview {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 252, 0.6);
+}
+
+.measure-preview svg {
+  width: 150px;
+  height: auto;
+}
+
+.measure-preview > span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.silhouette-figure ellipse,
+.silhouette-figure path {
+  fill: var(--green);
+  transition: d 200ms ease;
+}
+
+@media (max-width: 720px) {
+  .measure-step {
+    grid-template-columns: 1fr;
+  }
+
+  .measure-preview {
+    order: -1;
+  }
 }
 
 .onboarding-controls {

@@ -119,7 +119,18 @@ export type FreetextStep = {
   hint: string;
 };
 
-export type OnboardingStep = ChoiceStep | FreetextStep;
+// Numeric body measurements with a live silhouette preview. Optional — feeds the
+// virtual fitting room. Canonical values are metric; the UI offers an imperial
+// toggle. Submitted via hidden inputs (height_cm, weight_kg, measurement_unit).
+export type MeasureStep = {
+  type: "measure";
+  key: "measurements";
+  eyebrow: string;
+  question: string;
+  hint: string;
+};
+
+export type OnboardingStep = ChoiceStep | FreetextStep | MeasureStep;
 
 export const onboardingSteps: readonly OnboardingStep[] = [
   {
@@ -147,30 +158,37 @@ export const onboardingSteps: readonly OnboardingStep[] = [
     options: bodyTypeOptions
   },
   {
+    type: "measure",
+    key: "measurements",
+    eyebrow: "Style Discovery - Chapter 04",
+    question: "What are your measurements?",
+    hint: "Optional — powers your personal fitting room. You can add this later."
+  },
+  {
     type: "choice",
     key: "lifestyle",
-    eyebrow: "Style Discovery - Chapter 04",
+    eyebrow: "Style Discovery - Chapter 05",
     question: "What best describes your lifestyle?",
     options: lifestyleOptions
   },
   {
     type: "choice",
     key: "budget_per_item",
-    eyebrow: "Style Discovery - Chapter 05",
+    eyebrow: "Style Discovery - Chapter 06",
     question: "What's your typical budget per item?",
     options: budgetOptions
   },
   {
     type: "choice",
     key: "color_preference",
-    eyebrow: "Style Discovery - Chapter 06",
+    eyebrow: "Style Discovery - Chapter 07",
     question: "Which colors do you gravitate toward?",
     options: colorPreferenceOptions
   },
   {
     type: "freewrite",
     key: "style_notes",
-    eyebrow: "Style Discovery - Chapter 07",
+    eyebrow: "Style Discovery - Chapter 08",
     question: "Tell us about your style in your own words.",
     placeholder:
       "Describe your current style situation — what you love wearing, what you struggle to pull off, specific pieces you want to build around, or any look you're chasing...",
@@ -194,3 +212,14 @@ export const styleDnaSchema = z.object({
 });
 
 export type StyleDna = z.infer<typeof styleDnaSchema>;
+
+// Validated server-side before upserting fit_profiles. Both numbers are required
+// together; the whole step is skippable, so the action only runs this when the
+// user actually entered measurements.
+export const measurementsSchema = z.object({
+  height_cm: z.coerce.number().min(90).max(250),
+  weight_kg: z.coerce.number().min(25).max(350),
+  measurement_unit: z.enum(["imperial", "metric"]).default("imperial")
+});
+
+export type Measurements = z.infer<typeof measurementsSchema>;

@@ -36,12 +36,28 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
     .eq("user_id", user.id)
     .maybeSingle();
 
+  const { data: fitProfile } = await supabase
+    .from("fit_profiles")
+    .select("height_cm, weight_kg, measurement_unit")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const { error } = await searchParams;
   const notice = error ? noticeForError[error] ?? null : null;
 
   const initialFreewrite = {
     gender: currentStyleDna?.gender ?? "",
     style_notes: currentStyleDna?.style_notes ?? ""
+  };
+
+  // Postgres `numeric` arrives as a string from supabase-js — coerce to number.
+  const initialMeasurements = {
+    heightCm: fitProfile?.height_cm != null ? Number(fitProfile.height_cm) : null,
+    weightKg: fitProfile?.weight_kg != null ? Number(fitProfile.weight_kg) : null,
+    unit:
+      fitProfile?.measurement_unit === "metric"
+        ? ("metric" as const)
+        : ("imperial" as const)
   };
 
   return (
@@ -55,6 +71,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         action={saveOnboarding}
         initialValues={currentStyleDna ?? undefined}
         initialFreewrite={initialFreewrite}
+        initialMeasurements={initialMeasurements}
       />
     </main>
   );

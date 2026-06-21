@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { styleDnaSchema } from "@/lib/onboarding";
+import { measurementsSchema, styleDnaSchema } from "@/lib/onboarding";
 import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
 
@@ -65,6 +65,23 @@ export async function saveOnboarding(formData: FormData) {
     style_notes: cleanNotes || null,
     updated_at: new Date().toISOString()
   });
+
+  // Measurements are optional. Only persist when the user actually entered both
+  // height and weight (the schema rejects blank / partial input).
+  const measurements = measurementsSchema.safeParse({
+    height_cm: formData.get("height_cm"),
+    weight_kg: formData.get("weight_kg"),
+    measurement_unit: formData.get("measurement_unit") ?? "imperial"
+  });
+  if (measurements.success) {
+    await supabase.from("fit_profiles").upsert({
+      user_id: user.id,
+      height_cm: measurements.data.height_cm,
+      weight_kg: measurements.data.weight_kg,
+      measurement_unit: measurements.data.measurement_unit,
+      updated_at: new Date().toISOString()
+    });
+  }
 
   revalidatePath("/", "layout");
   redirect("/explore");
