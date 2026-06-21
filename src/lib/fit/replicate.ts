@@ -14,6 +14,9 @@ const REPLICATE_API = "https://api.replicate.com/v1";
 // with "no permission" unless your account has been granted access.
 const FACESWAP_MODEL = process.env.REPLICATE_FACESWAP_MODEL ?? "codeplugtech/face-swap";
 
+// Virtual try-on model: garment image rendered onto a person/base body.
+const VTON_MODEL = process.env.REPLICATE_VTON_MODEL ?? "cuuupid/idm-vton";
+
 export function isReplicateConfigured(): boolean {
   return Boolean(process.env.REPLICATE_API_TOKEN);
 }
@@ -34,53 +37,45 @@ export function resolveTargetUrl(opts: {
 
 type StartResult = { id: string; status: string };
 
-// Resolves the model's latest version hash. The version-based /v1/predictions
+function requireToken(): string {
+  const token = process.env.REPLICATE_API_TOKEN;
+  if (!token) throw new Error("Replicate is not configured.");
+  return token;
+}
+
+// Resolves a model's latest version hash. The version-based /v1/predictions
 // endpoint works for community models, unlike /v1/models/{slug}/predictions
 // which is limited to Replicate "official" models.
-async function resolveVersion(token: string): Promise<string> {
-  const response = await fetch(`${REPLICATE_API}/models/${FACESWAP_MODEL}`, {
+async function resolveVersion(token: string, model: string): Promise<string> {
+  const response = await fetch(`${REPLICATE_API}/models/${model}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store"
   });
   if (!response.ok) {
     throw new Error(
-      `Could not load model ${FACESWAP_MODEL} (HTTP ${response.status}) — it may be gated, private, or misspelled.`
+      `Could not load model ${model} (HTTP ${response.status}) — it may be gated, private, or misspelled.`
     );
   }
   const data = await response.json();
   const version = data?.latest_version?.id;
   if (!version) {
-    throw new Error(`Model ${FACESWAP_MODEL} has no available version.`);
+    throw new Error(`Model ${model} has no available version.`);
   }
   return version as string;
 }
 
-/** Kicks off a face-swap prediction. `faceUrl` is the selfie, `targetUrl` the base body. */
-export async function startFaceSwap(opts: {
-  faceUrl: string;
-  targetUrl: string;
-}): Promise<StartResult> {
-  const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) throw new Error("Replicate is not configured.");
-
-  const version = await resolveVersion(token);
-
+async function createPrediction(
+  token: string,
+  version: string,
+  input: Record<string, unknown>
+): Promise<StartResult> {
   const response = await fetch(`${REPLICATE_API}/predictions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      version,
-      // codeplugtech/face-swap inputs: swap_image (the face) + input_image (the
-      // body to swap onto). Input keys are model-specific — adjust if you swap
-      // REPLICATE_FACESWAP_MODEL for one with a different schema.
-      input: {
-        swap_image: opts.faceUrl,
-        input_image: opts.targetUrl
-      }
-    })
+    body: JSON.stringify({ version, input })
   });
 
   if (!response.ok) {
@@ -89,6 +84,40 @@ export async function startFaceSwap(opts: {
 
   const data = await response.json();
   return { id: data.id as string, status: data.status as string };
+}
+
+/** Kicks off a face-swap prediction. `faceUrl` is the selfie, `targetUrl` the base body. */
+export async function startFaceSwap(opts: {
+  faceUrl: string;
+  targetUrl: string;
+}): Promise<StartResult> {
+  const token = requireToken();
+  const version = await resolveVersion(token, FACESWAP_MODEL);
+  // codeplugtech/face-swap inputs: swap_image (the face) + input_image (target).
+  return createPrediction(token, version, {
+    swap_image: opts.faceUrl,
+    input_image: opts.targetUrl
+  });
+}
+
+/** Kicks off an IDM-VTON try-on: garment rendered onto the person/base body. */
+export async function startTryOn(opts: {
+  humanUrl: string;
+  garmentUrl: string;
+  description: string;
+  category: "upper_body" | "lower_body" | "dresses";
+}): Promise<StartResult> {
+  const token = requireToken();
+  const version = await resolveVersion(token, VTON_MODEL);
+  // cuuupid/idm-vton inputs: human_img + garm_img (required), garment_des,
+  // category, crop (true unless the human image is already 3:4).
+  return createPrediction(token, version, {
+    human_img: opts.humanUrl,
+    garm_img: opts.garmentUrl,
+    garment_des: opts.description,
+    category: opts.category,
+    crop: true
+  });
 }
 
 type Prediction = {
