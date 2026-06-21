@@ -4,6 +4,11 @@ import { useMemo, useRef, useState } from "react";
 import { Camera, Loader2, Sparkles, Trash2, UploadCloud } from "lucide-react";
 import { removeSimpleBackground } from "@/lib/wardrobe/background-removal";
 import {
+  ACCEPTED_IMAGE_ACCEPT,
+  isHeic,
+  prepareImageFile
+} from "@/lib/wardrobe/image-intake";
+import {
   clothingColors,
   clothingSeasons,
   clothingTypes,
@@ -27,6 +32,7 @@ const defaultFilter: ActiveFilter = { kind: "all", value: "all" };
 
 export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState(initialItems);
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>(defaultFilter);
   const [isDragging, setIsDragging] = useState(false);
@@ -85,8 +91,13 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
     setError(null);
 
     try {
+      // Validate size/type and convert iPhone HEIC/HEIF photos to JPEG first,
+      // so the canvas + AI steps below receive a browser-readable image.
+      setStatus(isHeic(file) ? "Converting iPhone photo..." : "Preparing photo...");
+      const readyFile = await prepareImageFile(file);
+
       setStatus("Removing background...");
-      const cleanedFile = await removeSimpleBackground(file);
+      const cleanedFile = await removeSimpleBackground(readyFile);
       const formData = new FormData();
       formData.append("image", cleanedFile);
 
@@ -115,6 +126,7 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
     } finally {
       setIsUploading(false);
       if (inputRef.current) inputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
   }
 
@@ -189,10 +201,21 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
           handleFiles(event.dataTransfer.files);
         }}
       >
+        {/* Standard picker. No `capture` attribute, so iOS shows its native
+            "Photo Library / Take Photo / Choose File" action sheet. */}
         <input
           ref={inputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept={ACCEPTED_IMAGE_ACCEPT}
+          onChange={(event) => handleFiles(event.target.files)}
+        />
+        {/* Camera-first input for the dedicated "Take Photo" button. On phones
+            `capture="environment"` opens the rear camera straight away. */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept={ACCEPTED_IMAGE_ACCEPT}
+          capture="environment"
           onChange={(event) => handleFiles(event.target.files)}
         />
         <button
@@ -210,7 +233,16 @@ export function WardrobeManager({ initialItems }: WardrobeManagerProps) {
         <strong>
           {isUploading ? status ?? "Working..." : "Drop a clothing photograph here"}
         </strong>
-        <span>or click to browse - PNG, JPG, or WebP up to 10 MB</span>
+        <span>or click to browse - PNG, JPG, WebP, or HEIC up to 10 MB</span>
+        <button
+          type="button"
+          className="take-photo-btn"
+          disabled={isUploading}
+          onClick={() => cameraInputRef.current?.click()}
+        >
+          <Camera size={14} aria-hidden="true" />
+          Take Photo
+        </button>
       </div>
 
       {error ? <p className="inline-error">{error}</p> : null}
