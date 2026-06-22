@@ -3,11 +3,9 @@ import { FittingRoom } from "@/components/fit/fitting-room";
 import { WardrobeTryOn } from "@/components/fit/wardrobe-tryon";
 import { createClient } from "@/lib/supabase/server";
 
-type TryOnState = {
-  status: "none" | "processing" | "ready" | "failed";
-  resultUrl: string | null;
-  error?: string | null;
-};
+type SelfieState = { id: string; url: string | null; label: string | null; primary: boolean };
+
+type InitialLook = { id: string; resultUrl: string | null; itemIds: string[] } | null;
 
 export default async function FittingRoomPage() {
   const supabase = await createClient();
@@ -46,10 +44,31 @@ export default async function FittingRoomPage() {
     avatarUrl = data?.signedUrl ?? null;
   }
 
-  // Pro users also get the wardrobe try-on grid + their cached results.
+  // Pro users also get the wardrobe look-builder + their most recent composed
+  // look, plus their saved reference photos for the mannequin gallery.
   let items: { id: string; name: string; type: string[]; image_url: string }[] = [];
-  const initialTryons: Record<string, TryOnState> = {};
+  let initialLook: InitialLook = null;
+  const initialSelfies: SelfieState[] = [];
   if (isPro) {
+    const { data: selfieRows } = await supabase
+      .from("fit_selfies")
+      .select("id, storage_path, label, sort_order, created_at")
+      .eq("user_id", user.id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    for (let i = 0; i < (selfieRows ?? []).length; i++) {
+      const row = selfieRows![i];
+      const { data } = await supabase.storage
+        .from("fit-models")
+        .createSignedUrl(row.storage_path, 60 * 60);
+      initialSelfies.push({
+        id: row.id,
+        url: data?.signedUrl ?? null,
+        label: row.label,
+        primary: i === 0
+      });
+    }
+
     const { data: wardrobe } = await supabase
       .from("wardrobe_items")
       .select("id, name, type, image_url")
@@ -57,24 +76,24 @@ export default async function FittingRoomPage() {
       .order("created_at", { ascending: false });
     items = wardrobe ?? [];
 
-    const { data: tryons } = await supabase
-      .from("fit_tryons")
-      .select("wardrobe_item_id, status, result_storage_path, error")
-      .eq("user_id", user.id);
-
-    for (const tryon of tryons ?? []) {
+    // Surface the user's most recent ready look so the stage isn't empty.
+    const { data: lastLook } = await supabase
+      .from("fit_looks")
+      .select("id, item_ids, result_storage_path")
+      .eq("user_id", user.id)
+      .eq("status", "ready")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastLook) {
       let resultUrl: string | null = null;
-      if (tryon.status === "ready" && tryon.result_storage_path) {
+      if (lastLook.result_storage_path) {
         const { data } = await supabase.storage
           .from("fit-models")
-          .createSignedUrl(tryon.result_storage_path, 60 * 60);
+          .createSignedUrl(lastLook.result_storage_path, 60 * 60);
         resultUrl = data?.signedUrl ?? null;
       }
-      initialTryons[tryon.wardrobe_item_id] = {
-        status: tryon.status,
-        resultUrl,
-        error: tryon.error
-      };
+      initialLook = { id: lastLook.id, resultUrl, itemIds: lastLook.item_ids ?? [] };
     }
   }
 
@@ -85,8 +104,9 @@ export default async function FittingRoomPage() {
         initialStatus={(fit?.avatar_status as "none" | "processing" | "ready" | "failed") ?? "none"}
         initialAvatarUrl={avatarUrl}
         hasConsented={Boolean(fit?.consent_at)}
+        initialSelfies={initialSelfies}
       />
-      {isPro ? <WardrobeTryOn items={items} initialTryons={initialTryons} /> : null}
+      {isPro ? <WardrobeTryOn items={items} initialLook={initialLook} /> : null}
     </>
   );
 }

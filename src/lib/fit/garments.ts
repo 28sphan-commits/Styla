@@ -22,6 +22,20 @@ export function garmentCategory(types: string[]): GarmentCategory | null {
   return null;
 }
 
+// Layer order for sequential composition: bottoms first so tops overlap the
+// waistband, then upper-body, then dresses last (a dress covers the whole torso
+// and legs, so it should sit on top if combined).
+const LAYER_RANK: Record<GarmentCategory, number> = {
+  lower_body: 0,
+  upper_body: 1,
+  dresses: 2
+};
+
+/** Sort rank used to order garments when layering them onto the body canvas. */
+export function categoryLayerRank(category: GarmentCategory): number {
+  return LAYER_RANK[category];
+}
+
 /** Short natural-language description the model uses to guide the try-on. */
 export function garmentDescription(item: {
   name: string;

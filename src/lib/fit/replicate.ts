@@ -20,7 +20,10 @@ const VTON_MODEL = process.env.REPLICATE_VTON_MODEL ?? "cuuupid/idm-vton";
 // Text-to-image model for auto-generating base mannequins. stability-ai/sdxl is
 // a stable public model that works with our version-based predictions flow.
 // Override via env (e.g. a Flux model) if your account has access.
+// Legacy: only used behind the REPLICATE_BASE_IMAGE_URL dev override now that the
+// canvas is the user's own full-body photo (no generated body).
 const BASE_GEN_MODEL = process.env.REPLICATE_BASE_GEN_MODEL ?? "stability-ai/sdxl";
+
 
 export function isReplicateConfigured(): boolean {
   return Boolean(process.env.REPLICATE_API_TOKEN);
@@ -48,11 +51,41 @@ function requireToken(): string {
   return token;
 }
 
+// Up to 3 retries (4 attempts total) with a 1s → 2s → 4s backoff.
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 1000;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * fetch wrapper that recursively retries on HTTP 429 (rate limit) with
+ * exponential backoff, so concurrent generations don't break when Replicate
+ * throttles us. Honors a `Retry-After` header when present (capped), otherwise
+ * waits 1s, 2s, 4s. After MAX_RETRIES it returns the 429 for the caller to
+ * surface. Non-429 responses (including other errors) return immediately.
+ */
+async function replicateFetch(
+  url: string,
+  init: RequestInit,
+  attempt = 0
+): Promise<Response> {
+  const response = await fetch(url, init);
+  if (response.status !== 429 || attempt >= MAX_RETRIES) {
+    return response;
+  }
+  const retryAfter = Number(response.headers.get("retry-after"));
+  const delay =
+    Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 10_000)
+      : RETRY_BASE_MS * 2 ** attempt;
+  await sleep(delay);
+  return replicateFetch(url, init, attempt + 1);
+}
+
 // Resolves a model's latest version hash. The version-based /v1/predictions
 // endpoint works for community models, unlike /v1/models/{slug}/predictions
 // which is limited to Replicate "official" models.
 async function resolveVersion(token: string, model: string): Promise<string> {
-  const response = await fetch(`${REPLICATE_API}/models/${model}`, {
+  const response = await replicateFetch(`${REPLICATE_API}/models/${model}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store"
   });
@@ -74,7 +107,7 @@ async function createPrediction(
   version: string,
   input: Record<string, unknown>
 ): Promise<StartResult> {
-  const response = await fetch(`${REPLICATE_API}/predictions`, {
+  const response = await replicateFetch(`${REPLICATE_API}/predictions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -115,13 +148,40 @@ export async function startTryOn(opts: {
   const token = requireToken();
   const version = await resolveVersion(token, VTON_MODEL);
   // cuuupid/idm-vton inputs: human_img + garm_img (required), garment_des,
-  // category, crop (true unless the human image is already 3:4).
+  // category, crop. crop MUST be false: our canvas is a fixed full-body portrait
+  // and crop:true auto-zooms to the garment region, chopping the legs/feet and
+  // drifting the framing across layers. This pass only supplies geometry +
+  // shading; authentic garment pixels are composited back later (mask-back).
   return createPrediction(token, version, {
     human_img: opts.humanUrl,
     garm_img: opts.garmentUrl,
     garment_des: opts.description,
     category: opts.category,
-    crop: true
+    crop: false
+  });
+}
+
+/**
+ * Kicks off IDM-VTON in `mask_only` mode: returns the category-aware agnostic
+ * mask (white = the region the model would dress) for a person image — the
+ * legs/hips for lower_body, the torso for upper_body, etc. We use this clean,
+ * pose-aligned mask both to warp authentic garment pixels back over the right
+ * region and to confirm a photo is full-body (legs reach the lower frame).
+ */
+export async function startGarmentMask(opts: {
+  humanUrl: string;
+  category: "upper_body" | "lower_body" | "dresses";
+}): Promise<StartResult> {
+  const token = requireToken();
+  const version = await resolveVersion(token, VTON_MODEL);
+  return createPrediction(token, version, {
+    human_img: opts.humanUrl,
+    // garm_img is required but ignored when mask_only is set; reuse the person.
+    garm_img: opts.humanUrl,
+    garment_des: "garment",
+    category: opts.category,
+    crop: false,
+    mask_only: true
   });
 }
 
@@ -156,7 +216,7 @@ export async function getPrediction(id: string): Promise<Prediction> {
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) throw new Error("Replicate is not configured.");
 
-  const response = await fetch(`${REPLICATE_API}/predictions/${id}`, {
+  const response = await replicateFetch(`${REPLICATE_API}/predictions/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store"
   });
