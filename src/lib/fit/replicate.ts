@@ -17,6 +17,11 @@ const FACESWAP_MODEL = process.env.REPLICATE_FACESWAP_MODEL ?? "codeplugtech/fac
 // Virtual try-on model: garment image rendered onto a person/base body.
 const VTON_MODEL = process.env.REPLICATE_VTON_MODEL ?? "cuuupid/idm-vton";
 
+// Text-to-image model for auto-generating base mannequins. stability-ai/sdxl is
+// a stable public model that works with our version-based predictions flow.
+// Override via env (e.g. a Flux model) if your account has access.
+const BASE_GEN_MODEL = process.env.REPLICATE_BASE_GEN_MODEL ?? "stability-ai/sdxl";
+
 export function isReplicateConfigured(): boolean {
   return Boolean(process.env.REPLICATE_API_TOKEN);
 }
@@ -117,6 +122,27 @@ export async function startTryOn(opts: {
     garment_des: opts.description,
     category: opts.category,
     crop: true
+  });
+}
+
+/** Kicks off a text-to-image prediction to generate a base mannequin image. */
+export async function startBaseGeneration(opts: {
+  prompt: string;
+  negativePrompt?: string;
+  width?: number;
+  height?: number;
+}): Promise<StartResult> {
+  const token = requireToken();
+  const version = await resolveVersion(token, BASE_GEN_MODEL);
+  // SDXL inputs: prompt, negative_prompt, width/height, num_outputs.
+  // apply_watermark off so the base body is clean for the downstream VTON step.
+  return createPrediction(token, version, {
+    prompt: opts.prompt,
+    negative_prompt: opts.negativePrompt ?? "",
+    width: opts.width ?? 768,
+    height: opts.height ?? 1024,
+    num_outputs: 1,
+    apply_watermark: false
   });
 }
 

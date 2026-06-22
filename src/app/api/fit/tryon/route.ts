@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveBaseModelKey } from "@/lib/fit/base-library";
+import { ensureBaseImage } from "@/lib/fit/base-generator";
 import { garmentCategory, garmentDescription } from "@/lib/fit/garments";
 import {
   firstOutputUrl,
@@ -9,11 +10,16 @@ import {
   resolveTargetUrl,
   startTryOn
 } from "@/lib/fit/replicate";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const BUCKET = "fit-models";
 const SIGNED_TTL = 60 * 60;
+
+// The first try-on for a missing slot generates its base image inline; allow a
+// long-running request so that one-time generation can complete.
+export const maxDuration = 300;
 
 const startSchema = z.object({
   wardrobeItemId: z.string().uuid(),
@@ -49,7 +55,24 @@ async function resolveHumanUrl(
     const url = await signed(supabase, fit.avatar_storage_path);
     if (url) return { url, baseKey };
   }
-  return { url: resolveTargetUrl(selection), baseKey };
+
+  // A dev override short-circuits the library entirely.
+  if (process.env.REPLICATE_BASE_IMAGE_URL) {
+    return { url: resolveTargetUrl(selection), baseKey };
+  }
+
+  // Otherwise resolve from the fit-base bucket, generating + caching the image
+  // on demand if this slot doesn't exist yet. Requires the service-role key; if
+  // it's unavailable, fall back to the (possibly-missing) public URL so the flow
+  // still degrades gracefully rather than throwing.
+  try {
+    const admin = createAdminClient();
+    const { url } = await ensureBaseImage(admin, baseKey);
+    return { url, baseKey };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Base image unavailable.";
+    throw new Error(`Couldn't prepare your base mannequin: ${message}`);
+  }
 }
 
 export async function POST(request: Request) {

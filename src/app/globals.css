@@ -5390,3 +5390,236 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Base Library Admin ───────────────────────────────────────────────── */
+
+.base-library-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.base-gender-heading {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 1rem;
+}
+
+.base-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.base-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--paper-strong);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem;
+  transition: border-color 0.2s;
+}
+
+.base-slot.is-present {
+  border-color: var(--green);
+}
+
+.base-slot.is-missing {
+  border-color: var(--line);
+}
+
+.base-slot-preview {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--soft);
+}
+
+.base-slot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.base-slot-empty-overlay,
+.base-slot-uploading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  background: var(--soft);
+}
+
+.base-slot-uploading-overlay {
+  background: rgba(247, 248, 241, 0.85);
+  color: var(--green);
+}
+
+.base-slot-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.base-slot-key {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--ink);
+}
+
+.base-slot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.base-slot-badge.is-present {
+  background: var(--green-soft);
+  color: var(--green-dark);
+}
+
+.base-slot-badge.is-missing {
+  background: var(--soft);
+  color: var(--muted);
+}
+
+.base-slot-error {
+  font-size: 0.68rem;
+  color: #b55;
+  margin: 0;
+}
+
+.base-slot-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.base-slot-upload-btn,
+.base-slot-gen-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0.45rem 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.base-slot-gen-btn {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green-dark);
+}
+
+.base-slot-upload-btn:hover:not(:disabled),
+.base-slot-gen-btn:hover:not(:disabled) {
+  background: var(--green-soft);
+  border-color: var(--green);
+}
+
+.base-slot-gen-btn:hover:not(:disabled) {
+  background: var(--green);
+  color: white;
+}
+
+.base-slot-upload-btn:disabled,
+.base-slot-gen-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.base-slot-uploading-overlay {
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.base-admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.base-generate-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 99px;
+  background: var(--green);
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.base-generate-all-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.base-generate-all-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.base-admin-hint {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.base-admin-warning {
+  background: #fff8e6;
+  border: 1.5px solid #f0c040;
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.82rem;
+  color: #7a5f00;
+  margin-bottom: 1rem;
+}
+
+.base-admin-warning code {
+  font-family: monospace;
+  background: rgba(0,0,0,0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+@media (max-width: 900px) {
+  .base-slots-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .base-slots-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
