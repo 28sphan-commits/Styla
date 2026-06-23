@@ -32,19 +32,40 @@ const planCards = [
     tier: "free",
     name: "Free",
     price: "$0 / month",
-    detail: "Basic access with limited generations and chat."
+    detail: "Get started with generous limits so you can explore.",
+    features: [
+      "Up to 40 item uploads (earn up to 75)",
+      "Automatic AI categorization",
+      "25 outfit generations",
+      "60 messages with the Styla AI chat",
+      "30 style goal checks"
+    ]
   },
   {
     tier: "pro",
     name: "Pro",
-    price: "$9.99 / month",
-    detail: "15 daily generations, advanced AI insights, unlimited chat."
+    price: "$6.99 / month",
+    detail: "Scan your whole wardrobe and go deeper.",
+    features: [
+      "250 item uploads",
+      "Advanced wardrobe scan — snap your closet, auto-categorized",
+      "100 outfit generations with seasonal styling",
+      "200 messages with the Styla AI chat",
+      "100 style goal checks"
+    ]
   },
   {
     tier: "elite",
     name: "Elite",
-    price: "$24.99 / month",
-    detail: "Unlimited everything, personal AI stylist, curated collections."
+    price: "$14.99 / month",
+    detail: "Everything unlimited, plus early access.",
+    features: [
+      "Unlimited uploads & outfit generations",
+      "Unlimited Styla AI chat",
+      "Personalized trend recommendations & how you align",
+      "40 virtual try-ons (beta)",
+      "Early access to new features"
+    ]
   }
 ] as const;
 
@@ -308,6 +329,11 @@ export function ProfileEditor({
               <strong>{plan.name}</strong>
               <span>{plan.price}</span>
               <p>{plan.detail}</p>
+              <ul className="plan-features">
+                {plan.features.map((feature) => (
+                  <li key={feature}>{feature}</li>
+                ))}
+              </ul>
               {profile.membership_tier === plan.tier ? <Check size={15} /> : null}
               <div className="plan-actions">
                 <button

@@ -3329,6 +3329,34 @@ select:focus-visible {
   line-height: 1.45;
 }
 
+.plan-features {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-features li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--ink, #14140f);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.plan-features li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--green);
+}
+
 .plan-actions {
   display: flex;
   flex-wrap: wrap;
