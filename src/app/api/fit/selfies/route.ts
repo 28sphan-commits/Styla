@@ -98,18 +98,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown capture step." }, { status: 400 });
   }
 
-  // Replace by label: re-capturing a step overwrites that shot. Remove any prior
-  // photo for this label (storage object + row) before inserting the new one.
-  const { data: prior } = await supabase
-    .from("fit_selfies")
-    .select("id, storage_path")
-    .eq("user_id", userId)
-    .eq("label", label);
-  for (const row of prior ?? []) {
-    await supabase.storage.from(BUCKET).remove([row.storage_path]);
-    await supabase.from("fit_selfies").delete().eq("id", row.id).eq("user_id", userId);
-  }
-
+  // Upload the new object first.
   const path = `${userId}/selfies/${crypto.randomUUID()}.${extOf(file.type)}`;
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -117,9 +106,35 @@ export async function POST(request: Request) {
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
-  await supabase
+
+  // Insert the new row and SURFACE any failure. A swallowed insert error here —
+  // e.g. a missing column from an unapplied migration — would make the photo look
+  // saved while no row lands, so /api/fit/generate later can't find the full_body
+  // shot and wrongly asks for it again. Roll back the object if the row fails.
+  const { error: insertError } = await supabase
     .from("fit_selfies")
     .insert({ user_id: userId, storage_path: path, label, sort_order: stepOrder(label) });
+  if (insertError) {
+    await supabase.storage.from(BUCKET).remove([path]);
+    return NextResponse.json(
+      { error: `Could not save the photo: ${insertError.message}` },
+      { status: 500 }
+    );
+  }
+
+  // Replace-by-label: now that the new shot is persisted, drop older shots for the
+  // same label (object + row). Done LAST so a failure never leaves the user with
+  // no photo for this step.
+  const { data: prior } = await supabase
+    .from("fit_selfies")
+    .select("id, storage_path")
+    .eq("user_id", userId)
+    .eq("label", label)
+    .neq("storage_path", path);
+  for (const row of prior ?? []) {
+    await supabase.storage.from(BUCKET).remove([row.storage_path]);
+    await supabase.from("fit_selfies").delete().eq("id", row.id).eq("user_id", userId);
+  }
 
   return NextResponse.json({ selfies: await listSelfies(supabase, userId) });
 }
