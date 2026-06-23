@@ -4,13 +4,16 @@ import {
   outfitCheckResultSchema,
   type OutfitCheckResult
 } from "@/lib/outfit-check/schema";
+import { compactWardrobe } from "@/lib/ai/context";
+import { GEMINI_MODELS, geminiEndpoint } from "@/lib/ai/models";
+import { logGeminiUsage } from "@/lib/ai/usage";
 import { STYLE_EVOLUTION_RULE } from "@/lib/ai/style-context";
 import { enforceModeration } from "@/lib/moderation/enforce";
 import { createClient } from "@/lib/supabase/server";
 import type { WardrobeItem } from "@/lib/wardrobe/schema";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_MODEL = GEMINI_MODELS.outfitCheck;
+const GEMINI_ENDPOINT = geminiEndpoint(GEMINI_MODEL);
 
 function cleanJson(text: string) {
   return text
@@ -117,25 +120,13 @@ async function checkWithGemini({
                   : "") +
                 "Keep every field concise and within these character limits: summary 500, each strength 180, each fix 220, each missing piece 120, colorNotes 260, fitNotes 260. Provide 1 to 4 strengths and 1 to 4 fixes. " +
                 "Return only strict JSON: {\"score\": number 0-100, \"summary\": string, \"strengths\": string[], \"fixes\": string[], \"missingPieces\": string[], \"colorNotes\": string, \"fitNotes\": string}.\n\n" +
-                JSON.stringify(
-                  {
-                    styleGoal,
-                    userNotes,
-                    styleDna,
-                    wardrobeItems: wardrobeItems.map((item) => ({
-                      id: item.id,
-                      name: item.name,
-                      type: item.type,
-                      color: item.color,
-                      pattern: item.pattern,
-                      formality: item.formality,
-                      season: item.season
-                    })),
-                    savedOutfits
-                  },
-                  null,
-                  2
-                )
+                JSON.stringify({
+                  styleGoal,
+                  userNotes,
+                  styleDna,
+                  wardrobeItems: compactWardrobe(wardrobeItems),
+                  savedOutfits
+                })
             },
             {
               inlineData: {
@@ -159,6 +150,7 @@ async function checkWithGemini({
   }
 
   const data = await response.json();
+  logGeminiUsage("outfit_check", GEMINI_MODEL, data);
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (typeof text !== "string") {

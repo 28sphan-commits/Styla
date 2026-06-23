@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
+import { compactWardrobe } from "@/lib/ai/context";
+import { GEMINI_MODELS, geminiEndpoint } from "@/lib/ai/models";
+import { logGeminiUsage } from "@/lib/ai/usage";
 import { STYLE_EVOLUTION_RULE } from "@/lib/ai/style-context";
 import { chatRequestSchema, type ChatMessage } from "@/lib/chat/schema";
 import { createClient } from "@/lib/supabase/server";
 import type { WardrobeItem } from "@/lib/wardrobe/schema";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_MODEL = GEMINI_MODELS.chat;
+const GEMINI_ENDPOINT = geminiEndpoint(GEMINI_MODEL);
 
 function trimAnswer(value: unknown) {
   const answer =
@@ -70,25 +73,13 @@ async function askGemini({
                 "Every request is stateless, so use all context below. If the user asks what to wear, suggest real item names from wardrobeItems. " +
                 "If the wardrobe is missing something, say what is missing and how to work around it. Keep answers concise but useful. " +
                 "Do not claim to see images unless they are described in the wardrobe metadata. Do not invent owned clothing.\n\n" +
-                JSON.stringify(
-                  {
-                    userMessage: message,
-                    styleDna,
-                    wardrobeItems: wardrobeItems.map((item) => ({
-                      id: item.id,
-                      name: item.name,
-                      type: item.type,
-                      color: item.color,
-                      pattern: item.pattern,
-                      formality: item.formality,
-                      season: item.season
-                    })),
-                    savedOutfits,
-                    recentMessages
-                  },
-                  null,
-                  2
-                )
+                JSON.stringify({
+                  userMessage: message,
+                  styleDna,
+                  wardrobeItems: compactWardrobe(wardrobeItems),
+                  savedOutfits,
+                  recentMessages
+                })
             }
           ]
         }
@@ -105,6 +96,7 @@ async function askGemini({
   }
 
   const data = await response.json();
+  logGeminiUsage("chat", GEMINI_MODEL, data);
   return trimAnswer(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }
 

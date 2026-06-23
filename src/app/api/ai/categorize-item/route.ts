@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
+import { GEMINI_MODELS, geminiEndpoint } from "@/lib/ai/models";
+import { logGeminiUsage } from "@/lib/ai/usage";
 import {
   wardrobeItemAiSchema,
   type WardrobeItemAi
 } from "@/lib/wardrobe/schema";
 import { createClient } from "@/lib/supabase/server";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_MODEL = GEMINI_MODELS.categorize;
+const GEMINI_ENDPOINT = geminiEndpoint(GEMINI_MODEL);
 
 function cleanJson(text: string) {
   return text
@@ -103,6 +105,7 @@ async function categorizeWithGemini(file: File) {
   }
 
   const data = await response.json();
+  logGeminiUsage("categorize", GEMINI_MODEL, data);
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (typeof text !== "string") {
