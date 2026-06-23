@@ -138,6 +138,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not save your profile." }, { status: 500 });
   }
 
+  // A fresh canvas invalidates every previously composed look — they were built
+  // on the OLD body image and would otherwise be served from the try-on cache
+  // (keyed by item signature only). Scratch them so each look rebuilds on the new
+  // canvas. Remove the stored look images first, then the rows; best-effort, so a
+  // storage hiccup never blocks finishing setup.
+  try {
+    const { data: staleLooks } = await supabase
+      .from("fit_looks")
+      .select("composite_path, result_storage_path")
+      .eq("user_id", user.id);
+    if (staleLooks?.length) {
+      const paths = [
+        ...new Set(
+          staleLooks
+            .flatMap((l) => [l.composite_path, l.result_storage_path])
+            .filter((p): p is string => Boolean(p))
+        )
+      ];
+      if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
+      await supabase.from("fit_looks").delete().eq("user_id", user.id);
+    }
+  } catch {
+    // Non-fatal — the canvas is saved; a leftover cached look is a minor issue.
+  }
+
   const { data: out } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(canvasPath, 60 * 60);
