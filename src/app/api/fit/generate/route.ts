@@ -4,6 +4,7 @@ import {
   letterboxToCanvas,
   maskInLowerBand
 } from "@/lib/fit/compose";
+import { CANVAS_LABEL } from "@/lib/fit/capture-steps";
 import { garmentRegionMaskUrl } from "@/lib/fit/segmentation";
 import { isReplicateConfigured } from "@/lib/fit/replicate";
 import { createClient } from "@/lib/supabase/server";
@@ -51,19 +52,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // Canvas source = the primary reference photo (lowest sort_order). It must be a
-  // full-body, head-to-toe shot. Photos are managed via /api/fit/selfies.
+  // Canvas source = the full-body shot from the capture rundown. Photos are
+  // captured + labeled via /api/fit/selfies.
   const { data: primary } = await supabase
     .from("fit_selfies")
     .select("storage_path")
     .eq("user_id", user.id)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true })
+    .eq("label", CANVAS_LABEL)
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (!primary) {
     return NextResponse.json(
-      { error: "Add a full-body photo (head to toe) first." },
+      { error: "Capture a full-body photo (head to toe) first." },
       { status: 400 }
     );
   }

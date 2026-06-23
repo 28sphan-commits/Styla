@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { FACE_LABEL } from "@/lib/fit/capture-steps";
 import { fetchBytes, maskBackGarment, maskStats, type Box } from "@/lib/fit/compose";
 import {
   categoryLayerRank,
@@ -12,6 +13,7 @@ import {
   getPrediction,
   isReplicateConfigured,
   resolveTargetUrl,
+  startFaceSwap,
   startTryOn
 } from "@/lib/fit/replicate";
 import { garmentRegionMaskUrl } from "@/lib/fit/segmentation";
@@ -119,6 +121,58 @@ async function storeOutput(
   return error ? null : path;
 }
 
+// Sharpen the face: the full-body canvas face is low-res, so swap the user's
+// dedicated high-res front shot onto the composed look's face. Best-effort — the
+// real body/hair underneath are already correct, so on any failure (no front
+// shot, swap error, timeout) we keep the mask-backed image untouched.
+async function sharpenFace(
+  supabase: SupabaseClient,
+  userId: string,
+  lookId: string,
+  image: Buffer
+): Promise<Buffer> {
+  if (!isReplicateConfigured()) return image;
+
+  const { data: front } = await supabase
+    .from("fit_selfies")
+    .select("storage_path")
+    .eq("user_id", userId)
+    .eq("label", FACE_LABEL)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!front) return image;
+
+  try {
+    // Face-swap needs cloud-reachable URLs, so stage the look in the bucket.
+    const tmpPath = `${userId}/looks/${lookId}/presharp-${crypto.randomUUID()}.png`;
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(tmpPath, image, { contentType: "image/png", upsert: false });
+    if (error) return image;
+
+    const [lookUrl, faceUrl] = await Promise.all([
+      signed(supabase, tmpPath),
+      signed(supabase, front.storage_path)
+    ]);
+    if (!lookUrl || !faceUrl) return image;
+
+    const prediction = await startFaceSwap({ faceUrl, targetUrl: lookUrl });
+    for (let i = 0; i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 2500));
+      const p = await getPrediction(prediction.id);
+      if (p.status === "succeeded") {
+        const out = firstOutputUrl(p.output);
+        return out ? await fetchBytes(out) : image;
+      }
+      if (p.status === "failed" || p.status === "canceled") return image;
+    }
+    return image;
+  } catch {
+    return image;
+  }
+}
+
 // Asset-preservation finalize: the VTON composite has correct garment geometry +
 // shading but re-drawn pixels. Here we warp each garment's AUTHENTIC product
 // pixels back over its category region (IDM-VTON's own pose-aligned agnostic
@@ -170,6 +224,9 @@ async function finalizeLook(
       // A failed mask-back just leaves the VTON rendering for that piece.
     }
   }
+
+  // Lock in a sharp, accurate face from the user's dedicated front shot.
+  image = await sharpenFace(supabase, userId, look.id, image);
 
   const finalPath = `${userId}/looks/${look.id}/final-${crypto.randomUUID()}.png`;
   const { error } = await supabase.storage

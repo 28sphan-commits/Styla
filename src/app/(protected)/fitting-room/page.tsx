@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { FittingRoom } from "@/components/fit/fitting-room";
 import { WardrobeTryOn } from "@/components/fit/wardrobe-tryon";
+import { isSetupComplete } from "@/lib/fit/capture-steps";
 import { createClient } from "@/lib/supabase/server";
 
-type SelfieState = { id: string; url: string | null; label: string | null; primary: boolean };
+type Shot = { label: string; url: string | null };
 
 type InitialLook = { id: string; resultUrl: string | null; itemIds: string[] } | null;
 
@@ -45,29 +46,25 @@ export default async function FittingRoomPage() {
   }
 
   // Pro users also get the wardrobe look-builder + their most recent composed
-  // look, plus their saved reference photos for the mannequin gallery.
+  // look, plus the photos captured in the guided rundown.
   let items: { id: string; name: string; type: string[]; image_url: string }[] = [];
   let initialLook: InitialLook = null;
-  const initialSelfies: SelfieState[] = [];
+  const initialShots: Shot[] = [];
+  let setupComplete = false;
   if (isPro) {
     const { data: selfieRows } = await supabase
       .from("fit_selfies")
-      .select("id, storage_path, label, sort_order, created_at")
+      .select("storage_path, label, sort_order")
       .eq("user_id", user.id)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
-    for (let i = 0; i < (selfieRows ?? []).length; i++) {
-      const row = selfieRows![i];
+      .order("sort_order", { ascending: true });
+    for (const row of selfieRows ?? []) {
+      if (!row.label) continue;
       const { data } = await supabase.storage
         .from("fit-models")
         .createSignedUrl(row.storage_path, 60 * 60);
-      initialSelfies.push({
-        id: row.id,
-        url: data?.signedUrl ?? null,
-        label: row.label,
-        primary: i === 0
-      });
+      initialShots.push({ label: row.label, url: data?.signedUrl ?? null });
     }
+    setupComplete = isSetupComplete(initialShots.map((s) => s.label));
 
     const { data: wardrobe } = await supabase
       .from("wardrobe_items")
@@ -104,7 +101,8 @@ export default async function FittingRoomPage() {
         initialStatus={(fit?.avatar_status as "none" | "processing" | "ready" | "failed") ?? "none"}
         initialAvatarUrl={avatarUrl}
         hasConsented={Boolean(fit?.consent_at)}
-        initialSelfies={initialSelfies}
+        initialShots={initialShots}
+        initialSetupComplete={setupComplete}
       />
       {isPro ? <WardrobeTryOn items={items} initialLook={initialLook} /> : null}
     </>

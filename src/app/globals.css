@@ -5301,7 +5301,7 @@ select:focus-visible {
   background: rgba(20, 20, 18, 0.55);
   color: #fff;
   cursor: pointer;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.12s;
 }
 
@@ -5313,9 +5313,17 @@ select:focus-visible {
   right: 4px;
 }
 
-.fitting-selfie:hover .fitting-selfie-star,
-.fitting-selfie:hover .fitting-selfie-remove {
-  opacity: 1;
+/* On hover-capable devices, keep the controls hidden until hover for a cleaner
+   look. On touch devices (no hover) they stay visible so they're always usable. */
+@media (hover: hover) and (pointer: fine) {
+  .fitting-selfie-star,
+  .fitting-selfie-remove {
+    opacity: 0;
+  }
+  .fitting-selfie:hover .fitting-selfie-star,
+  .fitting-selfie:hover .fitting-selfie-remove {
+    opacity: 1;
+  }
 }
 
 .fitting-selfie-star:hover {
@@ -5815,5 +5823,368 @@ select:focus-visible {
 @media (max-width: 600px) {
   .base-slots-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Guided photo-capture wizard (Doji-style rundown) */
+.capture-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 780px;
+}
+
+.capture-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 620px) {
+  .capture-layout {
+    grid-template-columns: 1fr 220px;
+    align-items: start;
+    gap: 20px;
+  }
+}
+
+.capture-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.capture-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--paper-strong);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+
+.capture-side-title {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.capture-side-tips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.capture-side-tips li {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.capture-side-tips li::before {
+  content: "–";
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.capture-side-required {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+/* Per-pose reference illustration in the side panel */
+.capture-demo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  background: var(--green-soft);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+}
+
+.capture-demo svg {
+  width: 74%;
+  height: 82%;
+}
+
+.capture-demo .demo-stroke {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.capture-demo .demo-fill {
+  fill: var(--green);
+  stroke: none;
+}
+
+.capture-demo .demo-soft {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 3;
+  stroke-dasharray: 7 7;
+  opacity: 0.6;
+}
+
+.capture-demo-arrow {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+}
+
+.capture-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.capture-progress-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  overflow: hidden;
+}
+
+.capture-progress-bar i {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  transition: width 0.2s ease;
+}
+
+.capture-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.capture-optional {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.capture-instruction {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.capture-frame {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--green-soft);
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+}
+
+.capture-shot,
+.capture-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Mirror the front-camera preview so it feels like a mirror (the captured frame
+   is saved un-mirrored). */
+.capture-video.is-mirrored {
+  transform: scaleX(-1);
+}
+
+.capture-guide-svg {
+  width: 60%;
+  height: 80%;
+  fill: none;
+  stroke: rgba(20, 20, 18, 0.45);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+
+.capture-shot ~ .capture-guide-face .capture-guide-svg,
+.capture-shot ~ .capture-guide-svg {
+  stroke: rgba(255, 255, 255, 0.85);
+}
+
+.capture-guide-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.capture-guide-arrow {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  color: rgba(20, 20, 18, 0.55);
+}
+
+.capture-shot ~ .capture-guide-face .capture-guide-arrow {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.capture-uploading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--green);
+}
+
+.capture-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.capture-actions-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.capture-back,
+.capture-retake,
+.capture-skip,
+.capture-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink, #14140f);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.capture-back:hover,
+.capture-retake:hover,
+.capture-skip:hover,
+.capture-upload:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.capture-capture,
+.capture-next,
+.capture-finish {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  padding: 11px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.capture-capture:disabled,
+.capture-finish:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.capture-review-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.capture-thumb {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--green-soft);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.capture-thumb img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+.capture-thumb-empty {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  color: var(--muted);
+}
+
+.capture-thumb.is-missing {
+  border-style: dashed;
+}
+
+.capture-thumb-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px 7px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.capture-thumb.is-done .capture-thumb-label {
+  color: var(--green);
+}
+
+.capture-hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@media (max-width: 520px) {
+  .capture-review-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

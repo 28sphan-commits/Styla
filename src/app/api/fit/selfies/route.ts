@@ -2,6 +2,7 @@
 // room's selfie gallery: a flexible, ordered array (NOT fixed angle slots). The
 // lowest sort_order is the "primary" — the face source for the swap.
 import { NextResponse } from "next/server";
+import { isValidLabel, stepOrder } from "@/lib/fit/capture-steps";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
@@ -82,42 +83,43 @@ export async function POST(request: Request) {
   const userId = auth.user.id;
 
   const formData = await request.formData();
-  const files = formData.getAll("selfie").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) {
-    return NextResponse.json({ error: "No photos provided." }, { status: 400 });
+  const file = formData.getAll("selfie").find((f): f is File => f instanceof File && f.size > 0);
+  const label = (formData.get("label") as string | null) ?? null;
+  if (!file) {
+    return NextResponse.json({ error: "No photo provided." }, { status: 400 });
   }
-  for (const file of files) {
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "Each photo must be an image." }, { status: 400 });
-    }
-    if (file.size > MAX_BYTES) {
-      return NextResponse.json({ error: "Each photo must be 10MB or smaller." }, { status: 400 });
-    }
+  if (!file.type.startsWith("image/")) {
+    return NextResponse.json({ error: "The photo must be an image." }, { status: 400 });
+  }
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json({ error: "The photo must be 10MB or smaller." }, { status: 400 });
+  }
+  if (!label || !isValidLabel(label)) {
+    return NextResponse.json({ error: "Unknown capture step." }, { status: 400 });
   }
 
-  // Append after any existing photos.
-  const { data: last } = await supabase
+  // Replace by label: re-capturing a step overwrites that shot. Remove any prior
+  // photo for this label (storage object + row) before inserting the new one.
+  const { data: prior } = await supabase
     .from("fit_selfies")
-    .select("sort_order")
+    .select("id, storage_path")
     .eq("user_id", userId)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  let next = (last?.sort_order ?? -1) + 1;
-
-  for (const file of files) {
-    const path = `${userId}/selfies/${crypto.randomUUID()}.${extOf(file.type)}`;
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: false });
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
-    }
-    await supabase
-      .from("fit_selfies")
-      .insert({ user_id: userId, storage_path: path, sort_order: next });
-    next++;
+    .eq("label", label);
+  for (const row of prior ?? []) {
+    await supabase.storage.from(BUCKET).remove([row.storage_path]);
+    await supabase.from("fit_selfies").delete().eq("id", row.id).eq("user_id", userId);
   }
+
+  const path = `${userId}/selfies/${crypto.randomUUID()}.${extOf(file.type)}`;
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (uploadError) {
+    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  }
+  await supabase
+    .from("fit_selfies")
+    .insert({ user_id: userId, storage_path: path, label, sort_order: stepOrder(label) });
 
   return NextResponse.json({ selfies: await listSelfies(supabase, userId) });
 }
@@ -142,34 +144,6 @@ export async function DELETE(request: Request) {
 
   await supabase.storage.from(BUCKET).remove([row.storage_path]);
   await supabase.from("fit_selfies").delete().eq("id", id).eq("user_id", userId);
-
-  return NextResponse.json({ selfies: await listSelfies(supabase, userId) });
-}
-
-// Make a photo the primary face source by floating it below all others.
-export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  if (!supabase) return NextResponse.json({ error: "Not configured." }, { status: 500 });
-  const auth = await proUser(supabase);
-  if ("response" in auth) return auth.response;
-  const userId = auth.user.id;
-
-  const id = new URL(request.url).searchParams.get("id");
-  if (!id) return NextResponse.json({ error: "id required." }, { status: 400 });
-
-  const { data: top } = await supabase
-    .from("fit_selfies")
-    .select("sort_order")
-    .eq("user_id", userId)
-    .order("sort_order", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  await supabase
-    .from("fit_selfies")
-    .update({ sort_order: (top?.sort_order ?? 0) - 1 })
-    .eq("id", id)
-    .eq("user_id", userId);
 
   return NextResponse.json({ selfies: await listSelfies(supabase, userId) });
 }
