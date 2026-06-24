@@ -8,7 +8,7 @@ const navItems = [
   { href: "/outfit-check", label: "Check" },
   { href: "/outfits", label: "Outfits" },
   { href: "/fitting-room", label: "Fitting Room" },
-  { href: "/chat", label: "Chat" },
+  { href: "/quests", label: "Quests" },
   { href: "/profile", label: "Profile" }
 ];
 

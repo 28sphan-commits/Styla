@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Flame, Search } from "lucide-react";
 import { ProfileGrid } from "@/components/social/profile-grid";
 import { loadStylistProfiles } from "@/lib/outfits/loaders";
 import { searchStylistProfiles } from "@/lib/social/stylist-search";
 import { createClient } from "@/lib/supabase/server";
 
 type StylistsPageProps = {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; sort?: string }>;
 };
 
 const STYLIST_LIMIT = 96;
@@ -44,9 +44,18 @@ export default async function StylistsPage({ searchParams }: StylistsPageProps) 
 
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
+  const trending = params.sort === "trending";
 
   const allStylists = await loadStylistProfiles(supabase, user.id, STYLIST_LIMIT);
-  const stylists = query ? searchStylistProfiles(allStylists, query) : allStylists;
+  const matched = query ? searchStylistProfiles(allStylists, query) : allStylists;
+  // "Top Trending" ranks users by reach: followers first, then how many looks
+  // they've shared.
+  const stylists = trending
+    ? [...matched].sort(
+        (a, b) =>
+          b.follower_count - a.follower_count || b.outfit_count - a.outfit_count
+      )
+    : matched;
 
   const activeQ = query.toLowerCase();
 
@@ -55,7 +64,9 @@ export default async function StylistsPage({ searchParams }: StylistsPageProps) 
       <div className="browse-toolbar">
         <div>
           <div className="section-kicker">Styla Social</div>
-          <h1>{query ? `"${query}"` : "Browse Stylists"}</h1>
+          <h1>
+            {query ? `"${query}"` : trending ? "Top Trending Stylists" : "Browse Stylists"}
+          </h1>
         </div>
         <form className="search-form browse-search" action="/explore/stylists">
           <Search size={15} aria-hidden="true" />
@@ -70,10 +81,17 @@ export default async function StylistsPage({ searchParams }: StylistsPageProps) 
       </div>
 
       <div className="social-filter-bar">
+        <Link
+          className={trending ? "is-active" : undefined}
+          href="/explore/stylists?sort=trending"
+        >
+          <Flame size={12} aria-hidden="true" />
+          Top Trending
+        </Link>
         {PILLS.map((pill) => (
           <Link
             key={pill.label}
-            className={activeQ === pill.q ? "is-active" : undefined}
+            className={!trending && activeQ === pill.q ? "is-active" : undefined}
             href={stylistsHref(pill.q || undefined)}
           >
             {pill.label}
@@ -82,7 +100,7 @@ export default async function StylistsPage({ searchParams }: StylistsPageProps) 
       </div>
 
       <ProfileGrid
-        key={query}
+        key={`${query}:${trending ? "trending" : ""}`}
         profiles={stylists}
         currentUserId={user.id}
         emptyTitle={query ? `No stylists match "${query}"` : "No stylists yet"}

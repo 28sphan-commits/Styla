@@ -37,9 +37,9 @@ export async function POST(request: Request) {
     .select("membership_tier")
     .eq("id", user.id)
     .maybeSingle();
-  if (profile?.membership_tier !== "pro" && profile?.membership_tier !== "elite") {
+  if (profile?.membership_tier !== "elite") {
     return NextResponse.json(
-      { error: "The personal mannequin is a Pro feature.", upgrade: true },
+      { error: "The personal mannequin is an Elite feature.", upgrade: true },
       { status: 403 }
     );
   }

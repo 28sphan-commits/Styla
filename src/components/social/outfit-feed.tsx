@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bookmark, Check, Copy, Heart, MessageCircle, Shirt, Sparkles } from "lucide-react";
+import { Bookmark, Check, Copy, Eye, Heart, MessageCircle, Shirt, Sparkles } from "lucide-react";
 import {
   moodLabels,
   occasionLabels,
@@ -44,7 +44,12 @@ export function OutfitFeed({
           };
         }
 
-        return { ...outfit, is_bookmarked: !outfit.is_bookmarked };
+        const nextSaved = !outfit.is_bookmarked;
+        return {
+          ...outfit,
+          is_bookmarked: nextSaved,
+          save_count: Math.max(0, outfit.save_count + (nextSaved ? 1 : -1))
+        };
       })
     );
 
@@ -72,7 +77,16 @@ export function OutfitFeed({
             };
           }
 
-          return { ...outfit, is_bookmarked: payload.active };
+          const wasBookmarked = outfit.is_bookmarked;
+          return {
+            ...outfit,
+            is_bookmarked: payload.active,
+            save_count: Math.max(
+              0,
+              outfit.save_count +
+                (payload.active === wasBookmarked ? 0 : payload.active ? 1 : -1)
+            )
+          };
         })
       );
     } catch {
@@ -179,9 +193,13 @@ export function OutfitFeed({
                 onClick={() => void toggleOutfit(outfit.id, "bookmark")}
               >
                 <Bookmark size={14} aria-hidden="true" />
-                Save
+                {outfit.save_count > 0 ? outfit.save_count : "Save"}
               </button>
             )}
+            <span className="social-icon-button is-static" title={`${outfit.view_count} views`}>
+              <Eye size={14} aria-hidden="true" />
+              {outfit.view_count}
+            </span>
             <button
               type="button"
               className="social-icon-button"

@@ -255,9 +255,9 @@ export async function POST(request: Request) {
     .select("membership_tier")
     .eq("id", user.id)
     .maybeSingle();
-  if (profile?.membership_tier !== "pro" && profile?.membership_tier !== "elite") {
+  if (profile?.membership_tier !== "elite") {
     return NextResponse.json(
-      { error: "The fitting room is a Pro feature.", upgrade: true },
+      { error: "The fitting room is an Elite feature.", upgrade: true },
       { status: 403 }
     );
   }

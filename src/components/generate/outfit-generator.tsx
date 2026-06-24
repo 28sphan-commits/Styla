@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, Loader2, Save, Sparkles } from "lucide-react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowUp, Check, Loader2, Plus, Save, Sparkles, X } from "lucide-react";
 import {
   moodLabels,
   occasionLabels,
@@ -199,6 +199,7 @@ export function OutfitGenerator({ wardrobeItems }: OutfitGeneratorProps) {
           <TagRow label="Occasion" options={outfitOccasions} labels={occasionLabels} onPick={appendTag} />
           <TagRow label="Mood" options={outfitMoods} labels={moodLabels} onPick={appendTag} />
           <TagRow label="Weather" options={outfitWeather} labels={weatherLabels} onPick={appendTag} />
+          <TrendRow onPick={appendTag} />
         </div>
       </div>
 
@@ -352,6 +353,128 @@ function TagRow<T extends string>({
             {labels[option]}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+const DEFAULT_TRENDS = [
+  "Y2K",
+  "Streetwear",
+  "Quiet Luxury",
+  "Old Money",
+  "Cottagecore",
+  "Coquette",
+  "Gorpcore",
+  "Athleisure",
+  "Grunge",
+  "Techwear",
+  "Normcore",
+  "Vintage"
+];
+
+const CUSTOM_TRENDS_KEY = "styla:customTrends";
+
+// Trend shortcut: same scoped-tag behavior as the other rows (#Trend:Y2K), but
+// the user can also add and persist their own trend pills locally.
+function TrendRow({ onPick }: { onPick: (category: string, value: string) => void }) {
+  const [custom, setCustom] = useState<string[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [value, setValue] = useState("");
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CUSTOM_TRENDS_KEY) || "[]");
+      if (Array.isArray(saved)) {
+        setCustom(saved.filter((t) => typeof t === "string"));
+      }
+    } catch {
+      // ignore malformed storage
+    }
+  }, []);
+
+  function persist(next: string[]) {
+    setCustom(next);
+    try {
+      localStorage.setItem(CUSTOM_TRENDS_KEY, JSON.stringify(next));
+    } catch {
+      // storage may be unavailable; pills still work for this session
+    }
+  }
+
+  function addTrend() {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const exists = [...DEFAULT_TRENDS, ...custom].some(
+      (t) => t.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (!exists) persist([...custom, trimmed]);
+    setValue("");
+    setAdding(false);
+    onPick("Trend", trimmed);
+  }
+
+  return (
+    <div className="generator-choice-row">
+      <span>Trend</span>
+      <div>
+        {DEFAULT_TRENDS.map((trend) => (
+          <button
+            key={trend}
+            type="button"
+            className="filter-chip"
+            onClick={() => onPick("Trend", trend)}
+          >
+            {trend}
+          </button>
+        ))}
+        {custom.map((trend) => (
+          <span key={trend} className="filter-chip is-custom">
+            <button type="button" onClick={() => onPick("Trend", trend)}>
+              {trend}
+            </button>
+            <button
+              type="button"
+              className="chip-remove"
+              aria-label={`Remove ${trend}`}
+              onClick={() => persist(custom.filter((t) => t !== trend))}
+            >
+              <X size={11} aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+        {adding ? (
+          <span className="trend-add-field">
+            <input
+              autoFocus
+              value={value}
+              maxLength={24}
+              placeholder="Name a trend"
+              onChange={(event) => setValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addTrend();
+                } else if (event.key === "Escape") {
+                  setAdding(false);
+                  setValue("");
+                }
+              }}
+            />
+            <button type="button" onClick={addTrend} aria-label="Add trend">
+              <Plus size={13} aria-hidden="true" />
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="filter-chip is-add"
+            onClick={() => setAdding(true)}
+          >
+            <Plus size={12} aria-hidden="true" />
+            Add
+          </button>
+        )}
       </div>
     </div>
   );

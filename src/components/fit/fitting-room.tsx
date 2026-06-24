@@ -10,7 +10,7 @@ type FitStatus = "none" | "processing" | "ready" | "failed";
 type Shot = { label: string; url: string | null };
 
 type FittingRoomProps = {
-  isPro: boolean;
+  isElite: boolean;
   initialStatus: FitStatus;
   initialAvatarUrl: string | null;
   hasConsented: boolean;
@@ -19,7 +19,7 @@ type FittingRoomProps = {
 };
 
 export function FittingRoom({
-  isPro,
+  isElite,
   initialStatus,
   initialAvatarUrl,
   hasConsented,
@@ -32,18 +32,18 @@ export function FittingRoom({
   // has been prepped; otherwise show the prepared canvas with a redo option.
   const [editing, setEditing] = useState(!(initialSetupComplete && initialStatus === "ready"));
 
-  if (!isPro) {
+  if (!isElite) {
     return (
       <section className="fitting-room page-shell">
         <div className="section-kicker">The Fitting Room</div>
         <h1>Your Personal Canvas</h1>
         <div className="fitting-upgrade">
           <Crown size={20} aria-hidden="true" />
-          <strong>A Pro feature</strong>
+          <strong>An Elite feature</strong>
           <p>
             Take a quick guided photo set and try your wardrobe on the real you —
             your own body, face, and hair, with each garment&apos;s true fabric.
-            Upgrade to Pro to unlock it.
+            Upgrade to Elite to unlock it.
           </p>
           <Link className="small-dark-button" href="/profile">
             <Sparkles size={13} aria-hidden="true" />

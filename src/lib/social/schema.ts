@@ -9,12 +9,20 @@ export type PublicProfile = Pick<
   follower_count: number;
   following_count: number;
   is_following: boolean;
+  style_aesthetic: string | null;
+  body_type: string | null;
+  lifestyle: string | null;
+  budget_per_item: string | null;
+  color_preference: string | null;
+  gender: string | null;
 };
 
 export type PublicOutfit = OutfitLibraryItem & {
   creator: PublicProfile | null;
   like_count: number;
   comment_count: number;
+  save_count: number;
+  view_count: number;
   is_liked: boolean;
   is_bookmarked: boolean;
 };

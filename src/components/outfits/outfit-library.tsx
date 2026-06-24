@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Send } from "lucide-react";
+import { Bookmark, Check, Copy, Eye, Heart, MessageCircle, Send } from "lucide-react";
 import { ClientDate } from "@/components/client-date";
 import { PostWizard } from "@/components/outfits/post-wizard";
 import {
@@ -103,6 +103,27 @@ export function OutfitLibrary({ mine, saved }: OutfitLibraryProps) {
 
                 <h2>{outfit.title}</h2>
                 <p>{outfit.description}</p>
+
+                {activeTab === "mine" && outfit.engagement ? (
+                  <div className="library-card-stats" aria-label="Post analytics">
+                    <span title="Likes">
+                      <Heart size={13} aria-hidden="true" />
+                      {outfit.engagement.like_count}
+                    </span>
+                    <span title="Comments">
+                      <MessageCircle size={13} aria-hidden="true" />
+                      {outfit.engagement.comment_count}
+                    </span>
+                    <span title="Saves">
+                      <Bookmark size={13} aria-hidden="true" />
+                      {outfit.engagement.save_count}
+                    </span>
+                    <span title="Views">
+                      <Eye size={13} aria-hidden="true" />
+                      {outfit.engagement.view_count}
+                    </span>
+                  </div>
+                ) : null}
 
                 {activeTab === "mine" ? (
                   // Mine tab — always show wizard, plus copy link if already public

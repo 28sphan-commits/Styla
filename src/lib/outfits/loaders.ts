@@ -66,6 +66,8 @@ type OutfitRowWithItems = SavedOutfit & {
 function mapOutfitItems(rows: OutfitRowWithItems[]): OutfitLibraryItem[] {
   return rows.map(({ outfit_items, ...outfit }) => ({
     ...(outfit as SavedOutfit),
+    // view_count is absent until the engagement-metrics migration runs.
+    view_count: (outfit as { view_count?: number }).view_count ?? 0,
     items: (outfit_items ?? [])
       .filter(
         (join): join is { position: number; wardrobe_items: WardrobeItem } =>
@@ -103,7 +105,39 @@ export async function loadOwnOutfits(
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  return mapOutfitItems((outfitRows ?? []) as OutfitRowWithItems[]);
+  const items = mapOutfitItems((outfitRows ?? []) as OutfitRowWithItems[]);
+  return attachOwnEngagement(supabase, items);
+}
+
+// Attaches like / comment / save / view counts to a user's own looks so the
+// Outfits library can show per-post analytics. Counts come from the public-read
+// policies on likes, comments and bookmarks; views live on the outfit row.
+async function attachOwnEngagement(
+  supabase: SupabaseLike,
+  items: OutfitLibraryItem[]
+): Promise<OutfitLibraryItem[]> {
+  if (!items.length) return items;
+
+  const outfitIds = items.map((item) => item.id);
+  const [{ data: likes }, { data: comments }, { data: bookmarks }] = await Promise.all([
+    asQuery(supabase.from("likes").select("outfit_id")).in("outfit_id", outfitIds),
+    asQuery(supabase.from("comments").select("outfit_id")).in("outfit_id", outfitIds),
+    asQuery(supabase.from("bookmarks").select("outfit_id")).in("outfit_id", outfitIds)
+  ]);
+
+  const likeCounts = countBy((likes ?? []) as { outfit_id: string }[], "outfit_id");
+  const commentCounts = countBy((comments ?? []) as { outfit_id: string }[], "outfit_id");
+  const saveCounts = countBy((bookmarks ?? []) as { outfit_id: string }[], "outfit_id");
+
+  return items.map((item) => ({
+    ...item,
+    engagement: {
+      like_count: likeCounts.get(item.id) ?? 0,
+      comment_count: commentCounts.get(item.id) ?? 0,
+      save_count: saveCounts.get(item.id) ?? 0,
+      view_count: item.view_count ?? 0
+    }
+  }));
 }
 
 export async function loadOutfitsByIds(
@@ -195,12 +229,47 @@ export async function loadPublicProfileByUsername(
     return null;
   }
 
-  const [profileWithStats] = await attachProfileStats(
-    supabase,
-    currentUserId,
-    [profile as PublicProfile]
-  );
-  return profileWithStats ?? null;
+  const baseProfile = profile as PublicProfile;
+
+  // Style DNA lives in a separate table (keyed by user_id). Fetch it in
+  // parallel with the social stats. Readable here because the RLS policy
+  // exposes style_dna of public profiles; null when the user has no row.
+  const [[profileWithStats], { data: dna }] = await Promise.all([
+    attachProfileStats(supabase, currentUserId, [baseProfile]),
+    asQuery(
+      supabase
+        .from("style_dna")
+        .select(
+          "style_aesthetic, body_type, lifestyle, budget_per_item, color_preference, gender"
+        )
+    )
+      .eq("user_id", baseProfile.id)
+      .maybeSingle()
+  ]);
+
+  if (!profileWithStats) {
+    return null;
+  }
+
+  const dnaRow = (dna ?? null) as Pick<
+    PublicProfile,
+    | "style_aesthetic"
+    | "body_type"
+    | "lifestyle"
+    | "budget_per_item"
+    | "color_preference"
+    | "gender"
+  > | null;
+
+  return {
+    ...profileWithStats,
+    style_aesthetic: dnaRow?.style_aesthetic ?? null,
+    body_type: dnaRow?.body_type ?? null,
+    lifestyle: dnaRow?.lifestyle ?? null,
+    budget_per_item: dnaRow?.budget_per_item ?? null,
+    color_preference: dnaRow?.color_preference ?? null,
+    gender: dnaRow?.gender ?? null
+  };
 }
 
 export async function loadPublicProfiles(
@@ -392,11 +461,13 @@ async function attachSocialData(
         "outfit_id",
         outfitIds
       ),
-      userId
-        ? asQuery(supabase.from("bookmarks").select("outfit_id"))
-            .eq("user_id", userId)
-            .in("outfit_id", outfitIds)
-        : Promise.resolve({ data: [], error: null }),
+      // All bookmarks on these (public) outfits, for the save count. Readable
+      // via the "read bookmarks on public outfits" policy; the current user's
+      // own rows in this set tell us which they've saved.
+      asQuery(supabase.from("bookmarks").select("user_id, outfit_id")).in(
+        "outfit_id",
+        outfitIds
+      ),
       asQuery(supabase.from("comments").select("outfit_id")).in(
         "outfit_id",
         outfitIds
@@ -414,8 +485,12 @@ async function attachSocialData(
   const likedIds = new Set(
     likeRows.filter((like) => like.user_id === userId).map((like) => like.outfit_id)
   );
+  const bookmarkRows = (bookmarks ?? []) as { user_id: string; outfit_id: string }[];
+  const saveCounts = countBy(bookmarkRows, "outfit_id");
   const bookmarkedIds = new Set(
-    ((bookmarks ?? []) as { outfit_id: string }[]).map((bookmark) => bookmark.outfit_id)
+    bookmarkRows
+      .filter((bookmark) => bookmark.user_id === userId)
+      .map((bookmark) => bookmark.outfit_id)
   );
   const commentCounts = countBy(
     (commentRows ?? []) as { outfit_id: string }[],
@@ -427,6 +502,8 @@ async function attachSocialData(
     creator: profileById.get(outfit.user_id) ?? null,
     like_count: likeCounts.get(outfit.id) ?? 0,
     comment_count: commentCounts.get(outfit.id) ?? 0,
+    save_count: saveCounts.get(outfit.id) ?? 0,
+    view_count: outfit.view_count ?? 0,
     is_liked: likedIds.has(outfit.id),
     is_bookmarked: bookmarkedIds.has(outfit.id)
   }));

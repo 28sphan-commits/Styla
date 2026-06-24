@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Shirt, Sparkles, Users } from "lucide-react";
-import { MessageButton } from "@/components/messages/message-button";
 import { FollowButton } from "@/components/social/follow-button";
 import { OutfitFeed } from "@/components/social/outfit-feed";
 import {
@@ -9,10 +8,25 @@ import {
   loadPublicProfileByUsername
 } from "@/lib/outfits/loaders";
 import { createClient } from "@/lib/supabase/server";
+import {
+  styleAestheticOptions,
+  bodyTypeOptions,
+  lifestyleOptions,
+  budgetOptions,
+  colorPreferenceOptions
+} from "@/lib/onboarding";
 
 type PublicProfilePageProps = {
   params: Promise<{ username: string }>;
 };
+
+function getLabel(
+  options: readonly { value: string; label: string }[],
+  value: string | null
+): string | null {
+  if (!value) return null;
+  return options.find((o) => o.value === value)?.label ?? null;
+}
 
 export default async function PublicProfilePage({ params }: PublicProfilePageProps) {
   const supabase = await createClient();
@@ -44,6 +58,17 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
   const isSelf = user?.id === profile.id;
 
+  // Starter-survey descriptors, shown on every public profile so visitors get a
+  // quick read on who this person is. Skips any field the user hasn't filled in.
+  const stylePills = [
+    profile.gender?.trim() || null,
+    getLabel(styleAestheticOptions, profile.style_aesthetic),
+    getLabel(bodyTypeOptions, profile.body_type),
+    getLabel(lifestyleOptions, profile.lifestyle),
+    getLabel(budgetOptions, profile.budget_per_item),
+    getLabel(colorPreferenceOptions, profile.color_preference)
+  ].filter((label): label is string => Boolean(label));
+
   return (
     <main className="public-profile-page">
       <header className="shared-outfit-header">
@@ -68,6 +93,17 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             <div className="section-kicker">Public Profile</div>
             <h1>@{profile.username}</h1>
             <p>{profile.bio || "Curating a sharper wardrobe with Styla."}</p>
+
+            {stylePills.length > 0 && (
+              <div className="style-dna-pills">
+                {stylePills.map((label) => (
+                  <span key={label} className="style-dna-pill">
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="public-profile-actions">
               {user ? (
                 <>
@@ -76,12 +112,11 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                     initialFollowing={profile.is_following}
                     disabled={isSelf}
                   />
-                  <MessageButton profileId={profile.id} disabled={isSelf} />
                 </>
               ) : (
                 <Link className="follow-button" href="/login">
                   <Sparkles size={13} aria-hidden="true" />
-                  Sign in to message
+                  Sign in to follow
                 </Link>
               )}
               {isSelf ? (

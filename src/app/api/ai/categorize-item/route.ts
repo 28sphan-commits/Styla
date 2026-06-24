@@ -6,6 +6,7 @@ import {
   type WardrobeItemAi
 } from "@/lib/wardrobe/schema";
 import { createClient } from "@/lib/supabase/server";
+import { BASE_FREE_UPLOADS, MAX_FREE_UPLOADS } from "@/lib/quests/catalog";
 
 const GEMINI_MODEL = GEMINI_MODELS.categorize;
 const GEMINI_ENDPOINT = geminiEndpoint(GEMINI_MODEL);
@@ -133,6 +134,42 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  // Free members are capped at BASE_FREE_UPLOADS, raised toward MAX_FREE_UPLOADS
+  // by wardrobe slots earned through quests. Paid tiers are unlimited.
+  const { data: tierRow } = await supabase
+    .from("profiles")
+    .select("membership_tier")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if ((tierRow?.membership_tier ?? "free") === "free") {
+    // wardrobe_bonus_slots may not exist until the quests migration runs.
+    const { data: bonusRow } = await supabase
+      .from("profiles")
+      .select("wardrobe_bonus_slots")
+      .eq("id", user.id)
+      .maybeSingle();
+    const bonus = (bonusRow as { wardrobe_bonus_slots?: number } | null)
+      ?.wardrobe_bonus_slots ?? 0;
+    const cap = Math.min(MAX_FREE_UPLOADS, BASE_FREE_UPLOADS + bonus);
+
+    const { count } = await supabase
+      .from("wardrobe_items")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if ((count ?? 0) >= cap) {
+      return NextResponse.json(
+        {
+          error: `You've reached your wardrobe limit of ${cap} items. Complete quests to earn more upload slots.`,
+          limitReached: true,
+          cap
+        },
+        { status: 403 }
+      );
+    }
   }
 
   const formData = await request.formData();

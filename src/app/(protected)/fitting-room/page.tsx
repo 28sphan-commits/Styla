@@ -33,8 +33,8 @@ export default async function FittingRoomPage() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const isPro =
-    profile?.membership_tier === "pro" || profile?.membership_tier === "elite";
+  // The Fitting Room is an Elite-exclusive feature.
+  const isElite = profile?.membership_tier === "elite";
 
   // Sign the stored mannequin (private bucket) for the initial render.
   let avatarUrl: string | null = null;
@@ -45,13 +45,13 @@ export default async function FittingRoomPage() {
     avatarUrl = data?.signedUrl ?? null;
   }
 
-  // Pro users also get the wardrobe look-builder + their most recent composed
+  // Elite users also get the wardrobe look-builder + their most recent composed
   // look, plus the photos captured in the guided rundown.
   let items: { id: string; name: string; type: string[]; image_url: string }[] = [];
   let initialLook: InitialLook = null;
   const initialShots: Shot[] = [];
   let setupComplete = false;
-  if (isPro) {
+  if (isElite) {
     const { data: selfieRows } = await supabase
       .from("fit_selfies")
       .select("storage_path, label, sort_order")
@@ -97,14 +97,14 @@ export default async function FittingRoomPage() {
   return (
     <>
       <FittingRoom
-        isPro={isPro}
+        isElite={isElite}
         initialStatus={(fit?.avatar_status as "none" | "processing" | "ready" | "failed") ?? "none"}
         initialAvatarUrl={avatarUrl}
         hasConsented={Boolean(fit?.consent_at)}
         initialShots={initialShots}
         initialSetupComplete={setupComplete}
       />
-      {isPro ? <WardrobeTryOn items={items} initialLook={initialLook} /> : null}
+      {isElite ? <WardrobeTryOn items={items} initialLook={initialLook} /> : null}
     </>
   );
 }

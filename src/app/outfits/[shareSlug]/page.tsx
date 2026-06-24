@@ -26,6 +26,18 @@ export default async function SharedOutfitPage({
     notFound();
   }
 
+  // Record a view (best-effort, fire-and-forget). The RPC excludes the owner's
+  // own visits and no-ops gracefully if the engagement migration hasn't run.
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  await supabase
+    .rpc("increment_outfit_views", {
+      p_outfit_id: outfitWithItems.id,
+      p_viewer_id: user?.id ?? null
+    })
+    .then(undefined, () => undefined);
+
   return (
     <main className="shared-outfit-page">
       <header className="shared-outfit-header">

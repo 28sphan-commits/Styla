@@ -86,15 +86,29 @@ export type SavedOutfit = {
   visibility: "public" | "friends";
   share_slug: string;
   created_at: string;
+  // Total views, tracked on the outfit row. Defaults to 0 until the engagement
+  // metrics migration is applied (older rows simply read as 0).
+  view_count: number;
 };
 
 export type OutfitItemView = WardrobeItem & {
   position: number;
 };
 
+// Aggregate engagement for a single outfit — shown as the analytics row on a
+// user's own looks.
+export type OutfitEngagement = {
+  like_count: number;
+  comment_count: number;
+  save_count: number;
+  view_count: number;
+};
+
 export type OutfitLibraryItem = SavedOutfit & {
   items: OutfitItemView[];
   source?: "mine" | "saved";
+  // Populated for the owner's own looks so they can see analytics.
+  engagement?: OutfitEngagement;
 };
 
 // Conversation-driven generation: the /generate workspace sends an ephemeral

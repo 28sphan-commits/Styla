@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Check, Crown, Save, Sparkles } from "lucide-react";
+import { Camera, Check, Crown, MessageSquare, Save, Send, Sparkles } from "lucide-react";
 import {
   bodyTypeOptions,
   budgetOptions,
@@ -34,7 +34,7 @@ const planCards = [
     price: "$0 / month",
     detail: "Get started with generous limits so you can explore.",
     features: [
-      "Up to 40 item uploads (earn up to 75)",
+      "Up to 40 item uploads (earn up to 78)",
       "Automatic AI categorization",
       "25 outfit generations",
       "60 messages with the Styla AI chat",
@@ -94,6 +94,10 @@ export function ProfileEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   function chooseAvatar(file: File | null) {
     if (!file) return;
@@ -183,6 +187,26 @@ export function ProfileEditor({
       );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function sendFeedback() {
+    setFeedbackSending(true);
+    setFeedbackError(null);
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: feedbackMessage })
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Could not send feedback.");
+      setFeedbackMessage("");
+      setFeedbackSent(true);
+    } catch (err) {
+      setFeedbackError(err instanceof Error ? err.message : "Could not send feedback.");
+    } finally {
+      setFeedbackSending(false);
     }
   }
 
@@ -415,6 +439,52 @@ export function ProfileEditor({
             }
           />
         </div>
+      </section>
+
+      <section className="profile-panel">
+        <div className="panel-heading">
+          <div>
+            <span>Feedback</span>
+            <h2>Tell Us What You Think</h2>
+          </div>
+        </div>
+        <p className="feedback-intro">
+          Got a feature request, spotted a bug, or just want to share how Styla
+          is working for you? We read every message.
+        </p>
+        {feedbackSent ? (
+          <div className="feedback-sent">
+            <Check size={15} aria-hidden="true" />
+            <span>Thanks for the feedback — we appreciate it!</span>
+          </div>
+        ) : (
+          <div className="feedback-form">
+            <label className="profile-style-notes">
+              <span>Your message</span>
+              <textarea
+                value={feedbackMessage}
+                maxLength={2000}
+                placeholder="What's on your mind?"
+                onChange={(event) => setFeedbackMessage(event.target.value)}
+              />
+              <small>{feedbackMessage.length}/2000</small>
+            </label>
+            {feedbackError ? <p className="inline-error">{feedbackError}</p> : null}
+            <button
+              className="small-dark-button"
+              type="button"
+              disabled={feedbackSending || feedbackMessage.trim().length === 0}
+              onClick={() => void sendFeedback()}
+            >
+              <Send size={13} aria-hidden="true" />
+              {feedbackSending ? "Sending…" : "Send Feedback"}
+            </button>
+            <small className="feedback-quest-hint">
+              <MessageSquare size={11} aria-hidden="true" />
+              Sending feedback completes the &ldquo;Tell us what you think&rdquo; quest.
+            </small>
+          </div>
+        )}
       </section>
 
       {error ? <p className="inline-error">{error}</p> : null}

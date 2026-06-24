@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Camera,
-  MessageCircle,
+  Leaf,
   Shirt,
   Sparkles,
-  Wand2
+  Trophy,
+  Wand2,
+  Zap
 } from "lucide-react";
 import { OutfitFeed } from "@/components/social/outfit-feed";
 import { ProfileGrid } from "@/components/social/profile-grid";
@@ -94,10 +96,6 @@ export default async function ExplorePage() {
               <Camera size={14} aria-hidden="true" />
               Check
             </Link>
-            <Link href="/chat">
-              <MessageCircle size={14} aria-hidden="true" />
-              Chat
-            </Link>
           </div>
         </div>
 
@@ -122,6 +120,21 @@ export default async function ExplorePage() {
       </div>
 
       <div className="rule" />
+
+      <Link className="leaderboard-cta" href="/explore/leaderboard">
+        <span className="leaderboard-cta-icon">
+          <Trophy size={18} aria-hidden="true" />
+        </span>
+        <span className="leaderboard-cta-text">
+          <strong>Leaderboard</strong>
+          <small>See the top aura earners and most popular looks</small>
+        </span>
+        <span className="leaderboard-cta-aura">
+          <Zap size={13} aria-hidden="true" />
+          Aura
+        </span>
+        <ArrowRight size={16} aria-hidden="true" />
+      </Link>
 
       <section className="social-section">
         <div className="social-section-heading">
@@ -160,6 +173,20 @@ export default async function ExplorePage() {
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
+
+        <Link className="places-cta" href="/explore/places">
+          <span className="places-cta-icon">
+            <Leaf size={18} aria-hidden="true" />
+          </span>
+          <span className="places-cta-text">
+            <strong>Discover sustainable places near you</strong>
+            <small>
+              Thrift, vintage &amp; consignment near you — plus donation and
+              textile-recycling drop-offs
+            </small>
+          </span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
       </section>
     </section>
   );
