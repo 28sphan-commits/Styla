@@ -94,6 +94,33 @@ export const colorPreferenceOptions = [
   { value: "monochrome", label: "Monochrome", detail: "One-color, tonal dressing", mark: "M" }
 ] as const;
 
+// Pronoun & identity options for the first survey question. Multi-select like
+// the other categories; "na" is the opt-out. gender is stored separately from
+// styleDnaSchema (as a free-text column), so we join the chosen labels on save.
+export const genderOptions = [
+  { value: "man", label: "Man", detail: "He / him", mark: "M" },
+  { value: "woman", label: "Woman", detail: "She / her", mark: "W" },
+  { value: "non_binary", label: "Non-binary/Bi", detail: "They / them", mark: "N" },
+  {
+    value: "na",
+    label: "Prefer not to say / IDK",
+    detail: "We'll keep things neutral",
+    mark: "?"
+  }
+] as const;
+
+// The five fixed-vocabulary style categories (everything in styleDnaSchema).
+// Each is multi-select in the UI: we persist the first pick to the scalar column
+// (keeps matching + checks intact) and the full set to a `${key}_tags` array.
+export const styleCategoryKeys = [
+  "style_aesthetic",
+  "body_type",
+  "lifestyle",
+  "budget_per_item",
+  "color_preference"
+] as const;
+export type StyleCategoryKey = (typeof styleCategoryKeys)[number];
+
 type ChoiceOption = { value: string; label: string; detail: string; mark: string };
 
 export type ChoiceStep = {
@@ -105,8 +132,9 @@ export type ChoiceStep = {
 };
 
 // Free-text onboarding fields. These live outside styleDnaSchema (no fixed enum)
-// and are saved/moderated individually by the onboarding action.
-export const freewriteKeys = ["gender", "style_notes"] as const;
+// and are saved/moderated individually by the onboarding action. (gender used to
+// live here but is now a multi-select identity question.)
+export const freewriteKeys = ["style_notes"] as const;
 export type FreewriteKey = (typeof freewriteKeys)[number];
 
 export type FreetextStep = {
@@ -134,14 +162,11 @@ export type OnboardingStep = ChoiceStep | FreetextStep | MeasureStep;
 
 export const onboardingSteps: readonly OnboardingStep[] = [
   {
-    type: "freewrite",
+    type: "choice",
     key: "gender",
     eyebrow: "Style Discovery - Chapter 01",
     question: "How do you identify?",
-    placeholder:
-      "E.g. woman, man, non-binary — or however you describe yourself. This helps us tailor fits and silhouettes.",
-    maxLength: 80,
-    hint: "Optional — helps us tailor fits. You can change this anytime."
+    options: genderOptions
   },
   {
     type: "choice",

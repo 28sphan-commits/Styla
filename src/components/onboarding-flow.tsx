@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import {
+  genderOptions,
   onboardingSteps,
-  type ChoiceStep,
+  styleCategoryKeys,
   type FreetextStep,
   type FreewriteKey,
   type StyleDna
@@ -25,10 +26,15 @@ type OnboardingFlowProps = {
   initialMeasurements?: InitialMeasurements;
 };
 
-type AnswerKey = keyof StyleDna;
+type Selections = Record<string, string[]>;
 
 const emptyAnswers: Partial<StyleDna> = {};
 const emptyFreewrite: Partial<Record<FreewriteKey, string>> = {};
+
+// value -> display label, so saved gender reads as "Man, Non-binary/Bi".
+const genderLabelByValue = new Map<string, string>(
+  genderOptions.map((o) => [o.value, o.label])
+);
 
 export function OnboardingFlow({
   action,
@@ -37,40 +43,43 @@ export function OnboardingFlow({
   initialMeasurements
 }: OnboardingFlowProps) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<StyleDna>>(initialValues);
+  // One array of chosen values per category key (multi-select). Seeded from any
+  // previously-saved scalar answers.
+  const [selections, setSelections] = useState<Selections>(() => {
+    const seed: Selections = {};
+    for (const key of styleCategoryKeys) {
+      const value = initialValues[key];
+      if (value) seed[key] = [value];
+    }
+    return seed;
+  });
   const [freewrite, setFreewrite] =
     useState<Partial<Record<FreewriteKey, string>>>(initialFreewrite);
   const [measure, setMeasure] = useState<MeasureState>(() =>
     buildMeasureState(initialMeasurements)
   );
   const [isPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const currentStep = onboardingSteps[stepIndex];
   const isChoiceStep = currentStep.type === "choice";
-  const selectedValue = isChoiceStep
-    ? answers[currentStep.key as AnswerKey]
-    : undefined;
-  // Choice steps require a selection; freewrite and measure steps are skippable.
-  const canContinue = isChoiceStep ? Boolean(selectedValue) : true;
+  const selectedValues = selections[currentStep.key] ?? [];
+  // Choice steps require at least one selection; freewrite and measure are skippable.
+  const canContinue = isChoiceStep ? selectedValues.length > 0 : true;
   const progress = Math.round(((stepIndex + 1) / onboardingSteps.length) * 100);
   const isLastStep = stepIndex === onboardingSteps.length - 1;
 
   const canonical = useMemo(() => canonicalFrom(measure), [measure]);
 
-  // Hidden inputs cover the choice steps so each selection submits with the form.
-  const hiddenChoiceFields = useMemo(
+  // Gender submits as a comma-joined label string into its free-text column.
+  const genderHiddenValue = useMemo(
     () =>
-      onboardingSteps
-        .filter((step): step is ChoiceStep => step.type === "choice")
-        .map((step) => ({
-          key: step.key,
-          value: answers[step.key as AnswerKey] ?? ""
-        })),
-    [answers]
+      (selections.gender ?? [])
+        .map((value) => genderLabelByValue.get(value) ?? value)
+        .join(", "),
+    [selections]
   );
 
-  // Every freewrite step also submits via its own hidden input, so any field is
-  // saved no matter which step triggers the final submit.
   const freewriteSteps = useMemo(
     () =>
       onboardingSteps.filter(
@@ -79,19 +88,26 @@ export function OnboardingFlow({
     []
   );
 
-  function chooseAnswer(key: AnswerKey, value: string) {
-    setAnswers((current) => ({ ...current, [key]: value }));
+  function toggleOption(key: string, value: string) {
+    setSelections((current) => {
+      const chosen = current[key] ?? [];
+      const next = chosen.includes(value)
+        ? chosen.filter((v) => v !== value)
+        : [...chosen, value];
+      return { ...current, [key]: next };
+    });
   }
 
   function setFreewriteValue(key: FreewriteKey, value: string) {
     setFreewrite((current) => ({ ...current, [key]: value }));
   }
 
-  function submit(formData: FormData) {
-    // Guard against implicit form submission — pressing Enter in a measurement
-    // input would otherwise complete onboarding and redirect away before the
-    // user has finished the remaining steps.
-    if (!isLastStep) return;
+  // The ONLY path that submits onboarding: an explicit click on Finish. The form
+  // never submits implicitly (onSubmit is prevented), so pressing Enter in a
+  // field or advancing to the last step can't auto-complete the survey.
+  function handleFinish() {
+    if (!isLastStep || isPending || !formRef.current) return;
+    const formData = new FormData(formRef.current);
     startTransition(() => {
       void action(formData);
     });
@@ -101,10 +117,22 @@ export function OnboardingFlow({
     currentStep.type === "freewrite" ? freewrite[currentStep.key] ?? "" : "";
 
   return (
-    <form className="onboarding-form" action={submit}>
-      {hiddenChoiceFields.map((field) => (
-        <input key={field.key} type="hidden" name={field.key} value={field.value} />
-      ))}
+    <form
+      ref={formRef}
+      className="onboarding-form"
+      onSubmit={(event) => event.preventDefault()}
+    >
+      {/* Scalar (first pick) + full multi-select tags for each style category. */}
+      {styleCategoryKeys.map((key) => {
+        const chosen = selections[key] ?? [];
+        return (
+          <span key={key}>
+            <input type="hidden" name={key} value={chosen[0] ?? ""} />
+            <input type="hidden" name={`${key}_tags`} value={chosen.join(",")} />
+          </span>
+        );
+      })}
+      <input type="hidden" name="gender" value={genderHiddenValue} />
       {freewriteSteps.map((step) => (
         <input
           key={step.key}
@@ -141,30 +169,35 @@ export function OnboardingFlow({
       <h1>{currentStep.question}</h1>
 
       {currentStep.type === "choice" ? (
-        <div className="option-grid">
-          {currentStep.options.map((option) => (
-            <button
-              className={
-                option.value === selectedValue ? "choice-card is-selected" : "choice-card"
-              }
-              type="button"
-              key={option.value}
-              onClick={() => chooseAnswer(currentStep.key as AnswerKey, option.value)}
-            >
-              <span className="choice-mark">{option.mark}</span>
-              <span>
-                <strong>{option.label}</strong>
-                <small>{option.detail}</small>
-              </span>
-              <i aria-hidden="true" />
-            </button>
-          ))}
-        </div>
+        <>
+          <p className="option-hint">Select all that apply.</p>
+          <div className="option-grid">
+            {currentStep.options.map((option) => {
+              const isSelected = selectedValues.includes(option.value);
+              return (
+                <button
+                  className={isSelected ? "choice-card is-selected" : "choice-card"}
+                  type="button"
+                  aria-pressed={isSelected}
+                  key={option.value}
+                  onClick={() => toggleOption(currentStep.key, option.value)}
+                >
+                  <span className="choice-mark">{option.mark}</span>
+                  <span>
+                    <strong>{option.label}</strong>
+                    <small>{option.detail}</small>
+                  </span>
+                  <i aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+        </>
       ) : currentStep.type === "measure" ? (
         <MeasurementFields
           value={measure}
           onChange={setMeasure}
-          bodyType={(answers.body_type as BodyType | undefined) ?? null}
+          bodyType={(selections.body_type?.[0] as BodyType | undefined) ?? null}
           hint={currentStep.hint}
         />
       ) : (
@@ -198,8 +231,9 @@ export function OnboardingFlow({
         {isLastStep ? (
           <button
             className="next-round"
-            type="submit"
+            type="button"
             disabled={!canContinue || isPending}
+            onClick={handleFinish}
           >
             {isPending ? "Saving" : "Finish"}
             <ArrowRight size={17} aria-hidden="true" />

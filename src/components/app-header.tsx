@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
+import { LOGO_ALT, LOGO_SRC } from "@/lib/brand";
 
 const navItems = [
   { href: "/explore", label: "Explore" },
@@ -22,7 +23,7 @@ export function AppHeader({ username, email }: AppHeaderProps) {
     <header className="app-header">
       <Link className="brand-lockup" href="/explore">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="brand-logo-img" src="/styla-logo.png" alt="" />
+        <img className="brand-logo-img" src={LOGO_SRC} alt={LOGO_ALT} />
         <span>Styla</span>
       </Link>
 

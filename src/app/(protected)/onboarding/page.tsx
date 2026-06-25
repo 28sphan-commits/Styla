@@ -46,7 +46,6 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   const notice = error ? noticeForError[error] ?? null : null;
 
   const initialFreewrite = {
-    gender: currentStyleDna?.gender ?? "",
     style_notes: currentStyleDna?.style_notes ?? ""
   };
 

@@ -426,6 +426,14 @@ select:focus-visible {
   text-align: center;
 }
 
+.option-hint {
+  margin: 14px auto 0;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 .option-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

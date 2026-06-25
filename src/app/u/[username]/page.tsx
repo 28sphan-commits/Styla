@@ -8,6 +8,7 @@ import {
   loadPublicProfileByUsername
 } from "@/lib/outfits/loaders";
 import { createClient } from "@/lib/supabase/server";
+import { LOGO_ALT, LOGO_SRC } from "@/lib/brand";
 import {
   styleAestheticOptions,
   bodyTypeOptions,
@@ -74,7 +75,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
       <header className="shared-outfit-header">
         <Link className="brand-lockup" href={user ? "/explore" : "/login"}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-logo-img" src="/styla-logo.png" alt="" />
+          <img className="brand-logo-img" src={LOGO_SRC} alt={LOGO_ALT} />
           <span>Styla</span>
         </Link>
         <Link href={user ? "/explore" : "/login"}>{user ? "Back to Explore" : "Sign In"}</Link>
